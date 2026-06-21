@@ -80,3 +80,23 @@ public interface IChangeLog
 {
     void Record(ChangeRecord record);
 }
+
+/// <summary>The outcome of a raw restore-point creation attempt.</summary>
+public enum RestorePointStatus
+{
+    /// <summary>A new restore point was created.</summary>
+    Created,
+    /// <summary>None created because a recent one already exists (Windows ~24h throttle).</summary>
+    AlreadyExistsRecently,
+    /// <summary>Creation failed.</summary>
+    Failed,
+}
+
+/// <summary>
+/// Raw restore-point creation. The actual WMI call lives behind this humble seam; turning its
+/// result into the <see cref="IRestorePointService"/> contract is the tested logic.
+/// </summary>
+public interface IRestorePointApi
+{
+    RestorePointStatus CreateRestorePoint(string description);
+}
