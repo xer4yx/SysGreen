@@ -71,3 +71,12 @@ public interface IClock
 {
     DateTime UtcNow { get; }
 }
+
+/// <summary>
+/// Persistence port for the undo log. The Data layer adapts this to SQLite; the Apply flow
+/// depends only on this Core abstraction (ADR-0006 / ADR-0011).
+/// </summary>
+public interface IChangeLog
+{
+    void Record(ChangeRecord record);
+}

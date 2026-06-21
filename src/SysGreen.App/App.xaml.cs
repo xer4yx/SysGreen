@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SysGreen.App.ViewModels;
 using SysGreen.Core;
 using SysGreen.Core.Abstractions;
+using SysGreen.Core.Apply;
 using SysGreen.Core.Knowledge;
 using SysGreen.Core.Recommendations;
 using SysGreen.Core.Startup;
@@ -48,7 +49,9 @@ public partial class App : Application
             _ => new SqliteConnectionFactory(SqliteConnectionFactory.DefaultDatabasePath()));
         services.AddSingleton<DatabaseBootstrapper>();
         services.AddSingleton<IUsageRepository, UsageRepository>();
-        services.AddSingleton<IChangeRecordRepository, ChangeRecordRepository>();
+        services.AddSingleton<ChangeRecordRepository>();
+        services.AddSingleton<IChangeRecordRepository>(sp => sp.GetRequiredService<ChangeRecordRepository>());
+        services.AddSingleton<IChangeLog>(sp => sp.GetRequiredService<ChangeRecordRepository>());
 
         // Platform providers (ADR-0008 / ADR-0011)
         services.AddSingleton<IAutostartProvider, RegistryAutostartProvider>();
@@ -63,6 +66,7 @@ public partial class App : Application
         services.AddSingleton<IProcessTerminator, ProcessTerminator>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IItemController, StartupApprovedItemController>();
+        services.AddSingleton<IApplyService, ApplyService>();
 
         // Knowledge + recommendations (ADR-0002 / ADR-0007 / ADR-0010)
         var kbPath = Path.Combine(AppContext.BaseDirectory, "knowledge-base.json");
