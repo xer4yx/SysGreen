@@ -1,0 +1,15 @@
+<Project>
+
+  <!-- Shared properties for every SysGreen project. TargetFramework stays per-project
+       (Core/Data are portable net10.0; the Windows-touching projects are net10.0-windows). -->
+  <PropertyGroup>
+    <Product>SysGreen</Product>
+    <Company>SysGreen</Company>
+    <Version>0.1.0</Version>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+  </PropertyGroup>
+
+</Project>

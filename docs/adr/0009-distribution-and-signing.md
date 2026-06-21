@@ -1,0 +1,5 @@
+# Distribution: Inno Setup + Velopack; code signing deferred (with risk noted)
+
+SysGreen ships as a traditional **unpackaged** installer built with **Inno Setup** (per-machine, `Program Files`), with **Velopack** for app self-update. The Knowledge Base ships **inside each release** — no separate KB download channel in the MVP (keeps it offline-first per ADR-0002). MSIX was rejected because it re-introduces the sandbox/container deliberately avoided in ADR-0003 and ADR-0004.
+
+**Code signing is deferred** for the MVP/beta phase. Accepted consequence: early users will see SmartScreen "Unknown publisher" warnings and face a higher chance of antivirus/PUA flags (the app modifies the registry, services, and disables telemetry — heuristically malware-like), and each unsigned Velopack update restarts SmartScreen reputation. This is tolerable for internal/beta distribution but is a **launch blocker that must be revisited before any public release** (EV certificate preferred for immediate SmartScreen reputation). Signing is orthogonal to the architecture, so it can be added later with no structural change.

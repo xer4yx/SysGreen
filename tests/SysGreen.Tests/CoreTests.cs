@@ -1,0 +1,94 @@
+using SysGreen.Core.Domain;
+using SysGreen.Core.Knowledge;
+using SysGreen.Core.Recommendations;
+using SysGreen.Core.Usage;
+
+namespace SysGreen.Tests;
+
+public class RecommendationEngineTests
+{
+    private static readonly DateTime Now = new(2026, 6, 20, 0, 0, 0, DateTimeKind.Utc);
+    private readonly RecommendationEngine _engine = new();
+
+    private static ManageableItem Item(Purpose purpose, SafetyRating safety, string exe = @"C:\app\app.exe")
+    {
+        var entry = new AutostartEntry(
+            "id", "Thing", ItemKind.StartupApp, AutostartLocation.RegistryRunCurrentUser,
+            exe, null, AutostartState.Enabled);
+        return new ManageableItem("id", "Thing", ItemKind.StartupApp, entry, null, purpose, safety, 20_000_000);
+    }
+
+    [Fact]
+    public void Recommends_safe_overhead_even_with_no_usage()
+    {
+        var recs = _engine.Recommend([Item(Purpose.Updater, SafetyRating.Safe)], [], Now);
+
+        Assert.Single(recs);
+        Assert.Equal(RecommendationSource.Static, recs[0].Source);
+    }
+
+    [Fact]
+    public void Safety_is_a_hard_gate()
+    {
+        // Overhead, but Caution — must never be recommended.
+        var recs = _engine.Recommend([Item(Purpose.Updater, SafetyRating.Caution)], [], Now);
+
+        Assert.Empty(recs);
+    }
+
+    [Fact]
+    public void Recommends_abandoned_safe_app_via_habit()
+    {
+        var item = Item(Purpose.Media, SafetyRating.Safe);
+        var usage = new[] { new UsageRecord(@"C:\app\app.exe", 5, Now.AddDays(-60)) };
+
+        var recs = _engine.Recommend([item], usage, Now);
+
+        Assert.Single(recs);
+        Assert.Equal(RecommendationSource.Habit, recs[0].Source);
+    }
+
+    [Fact]
+    public void Does_not_recommend_recently_used_non_overhead_app()
+    {
+        var item = Item(Purpose.Media, SafetyRating.Safe);
+        var usage = new[] { new UsageRecord(@"C:\app\app.exe", 5, Now.AddDays(-1)) };
+
+        var recs = _engine.Recommend([item], usage, Now);
+
+        Assert.Empty(recs);
+    }
+}
+
+public class ClassifierTests
+{
+    private static AutostartEntry Entry(string exePath, string? publisher = null) =>
+        new("id", "Thing", ItemKind.StartupApp, AutostartLocation.RegistryRunCurrentUser,
+            exePath, publisher, AutostartState.Enabled);
+
+    [Fact]
+    public void Unknown_executable_defaults_to_caution()
+    {
+        var kb = new JsonKnowledgeBase(new KnowledgeBaseDocument(1, "test", []));
+        var classification = new Classifier(kb).Classify(Entry(@"C:\x\mystery.exe"));
+
+        Assert.Equal(Purpose.Unknown, classification.Purpose);
+        Assert.Equal(SafetyRating.Caution, classification.Safety);
+        Assert.Equal(ClassificationSource.Unknown, classification.Source);
+    }
+
+    [Fact]
+    public void Matches_knowledge_base_entry_by_executable_name()
+    {
+        var entry = new KnowledgeEntry(
+            "Spotify AB", "Spotify.exe", null, "Spotify", "Media auto-launcher",
+            Purpose.Media, SafetyRating.Safe, 398458880, false);
+        var kb = new JsonKnowledgeBase(new KnowledgeBaseDocument(1, "test", [entry]));
+
+        var classification = new Classifier(kb).Classify(Entry(@"C:\Spotify\Spotify.exe", "Spotify AB"));
+
+        Assert.Equal(Purpose.Media, classification.Purpose);
+        Assert.Equal(SafetyRating.Safe, classification.Safety);
+        Assert.Equal(ClassificationSource.KnowledgeBase, classification.Source);
+    }
+}

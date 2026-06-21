@@ -1,0 +1,5 @@
+# Classification via offline curated knowledge base, no backend (MVP)
+
+SysGreen classifies items along two separate axes — **Purpose** (what it's for) and **Safety Rating** (how risky to disable) — sourced from a **curated knowledge base shipped with the app**, with **heuristic fallback** (file signature/publisher, description, install path, updater patterns) for items not in the KB. Anything not confidently classified defaults to Purpose=Unknown / Safety=Caution and is **never auto-recommended**.
+
+We rejected a backend/crowdsourced classifier and an LLM classifier for the MVP. Reasons: an online lookup sends the user's process list off-machine (privacy + trust), adds backend infra and a network dependency to a tool that must work offline, and exposes a DB-poisoning attack surface; an LLM is non-deterministic, which is unacceptable when a wrong "disable this" can break boot. This keeps the MVP offline-first and deterministic. Crowdsourcing/AI can be layered on later as an *enrichment* source, not the source of truth.

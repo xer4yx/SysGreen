@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SysGreen.Agent/SysGreen.Agent.csproj" />
+    <Project Path="src/SysGreen.App/SysGreen.App.csproj" />
+    <Project Path="src/SysGreen.Core/SysGreen.Core.csproj" />
+    <Project Path="src/SysGreen.Data/SysGreen.Data.csproj" />
+    <Project Path="src/SysGreen.Helper/SysGreen.Helper.csproj" />
+    <Project Path="src/SysGreen.Platform/SysGreen.Platform.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SysGreen.Tests/SysGreen.Tests.csproj" />
+  </Folder>
+</Solution>

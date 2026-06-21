@@ -1,0 +1,5 @@
+# Local storage: SQLite + Dapper for mutable data, JSON for the shipped KB
+
+Mutable data — **Usage events** (time-series, append-heavy) and **Change Records** (the transactional undo log) — is stored in **SQLite** via **Microsoft.Data.Sqlite + Dapper**. SQLite gives single-file, serverless, crash-safe transactions (the undo log must survive a crash mid-Apply) and handles the recency/frequency queries Usage needs. We chose Dapper over EF Core deliberately: EF Core's startup cost and overhead work against SysGreen's lightweight brand, and the data model is small enough not to need a full ORM.
+
+The **Knowledge Base** is shipped as **versioned JSON in source control** (reviewable, diffable, open to community contributions later) and loaded at startup — kept **separate** from the mutable SQLite store so a KB update can never risk the user's Usage or undo data. LiteDB and flat-file JSON for the mutable data were rejected (weaker/less battle-tested transactions — unacceptable for the undo log).
