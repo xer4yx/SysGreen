@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": "2026-06-20",
+  "entries": [
+    {
+      "matchPublisher": "Spotify AB",
+      "matchExecutable": "Spotify.exe",
+      "matchPathPattern": null,
+      "displayName": "Spotify",
+      "description": "Spotify's auto-launcher — preloads the music app at boot.",
+      "purpose": "Media",
+      "safety": "Safe",
+      "typicalRamBytes": 398458880,
+      "providesPassiveValue": false
+    },
+    {
+      "matchPublisher": "Discord Inc.",
+      "matchExecutable": "Discord.exe",
+      "matchPathPattern": null,
+      "displayName": "Discord",
+      "description": "Discord chat client auto-start.",
+      "purpose": "Communication",
+      "safety": "Safe",
+      "typicalRamBytes": 314572800,
+      "providesPassiveValue": false
+    },
+    {
+      "matchPublisher": "Microsoft Corporation",
+      "matchExecutable": "ms-teams.exe",
+      "matchPathPattern": null,
+      "displayName": "Microsoft Teams",
+      "description": "Teams auto-start (personal/work).",
+      "purpose": "Communication",
+      "safety": "Safe",
+      "typicalRamBytes": 524288000,
+      "providesPassiveValue": false
+    },
+    {
+      "matchPublisher": "Valve Corp.",
+      "matchExecutable": "steam.exe",
+      "matchPathPattern": null,
+      "displayName": "Steam",
+      "description": "Steam game launcher auto-start. Relaunches when you open a game.",
+      "purpose": "Gaming",
+      "safety": "Safe",
+      "typicalRamBytes": 209715200,
+      "providesPassiveValue": false
+    },
+    {
+      "matchPublisher": "Microsoft Corporation",
+      "matchExecutable": "OneDrive.exe",
+      "matchPathPattern": null,
+      "displayName": "Microsoft OneDrive",
+      "description": "Syncs your files in the background even when its window is closed.",
+      "purpose": "Productivity",
+      "safety": "Caution",
+      "typicalRamBytes": 157286400,
+      "providesPassiveValue": true
+    },
+    {
+      "matchPublisher": "Google LLC",
+      "matchExecutable": "GoogleUpdate.exe",
+      "matchPathPattern": null,
+      "displayName": "Google Updater",
+      "description": "Background updater for Google software.",
+      "purpose": "Updater",
+      "safety": "Safe",
+      "typicalRamBytes": 20971520,
+      "providesPassiveValue": false
+    },
+    {
+      "matchPublisher": "Adobe Inc.",
+      "matchExecutable": "AdobeUpdateService.exe",
+      "matchPathPattern": null,
+      "displayName": "Adobe Updater",
+      "description": "Background updater for Adobe software.",
+      "purpose": "Updater",
+      "safety": "Safe",
+      "typicalRamBytes": 31457280,
+      "providesPassiveValue": false
+    },
+    {
+      "matchPublisher": "Microsoft Corporation",
+      "matchExecutable": "DiagTrack",
+      "matchPathPattern": null,
+      "displayName": "Connected User Experiences and Telemetry",
+      "description": "Windows diagnostic/telemetry data collection service.",
+      "purpose": "WindowsTelemetry",
+      "safety": "Safe",
+      "typicalRamBytes": 41943040,
+      "providesPassiveValue": false
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+# Privacy and telemetry stance: zero outbound telemetry, local-only usage data
+
+SysGreen sends **zero outbound telemetry** in the MVP — no analytics, no usage upload — consistent with the offline-first/no-backend stance (ADR-0002). This is treated as a product strength, not a limitation: a tool whose purpose is reducing telemetry and background chatter must not ship usage data home, especially when that data is *which apps the user launches* (a real privacy liability).
+
+**Usage data is local-only and disclosed up front.** A first-run screen plainly states that SysGreen records app launches on this PC only, to power recommendations, and that nothing leaves the machine. The Tray Agent's launch tracking is **on by default, with a visible off switch** — strict opt-in was rejected because it would leave most users with static-only recommendations and gut the differentiating habit feature. Crash/error diagnostics are written to a **local log file only**; opt-in upload may come later but never silently.

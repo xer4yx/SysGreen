@@ -1,0 +1,27 @@
+<Window x:Class="SysGreen.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SysGreen.App"
+        mc:Ignorable="d"
+        Title="SysGreen" Height="560" Width="900">
+    <DockPanel Margin="12">
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}"
+                   FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
+        <TabControl>
+            <TabItem Header="Recommendations">
+                <ListBox ItemsSource="{Binding Recommendations}" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+            </TabItem>
+            <TabItem Header="All Items">
+                <ListBox ItemsSource="{Binding AllItems}" FontFamily="Consolas" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+            </TabItem>
+            <TabItem Header="History">
+                <ListBox ItemsSource="{Binding History}" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

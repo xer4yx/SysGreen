@@ -1,0 +1,5 @@
+# Apply is best-effort, not transactional
+
+When an Apply batch partially fails, SysGreen applies each change **independently and continues on error**, then shows a per-item result summary ("8 disabled · 2 failed — Spotify (access denied), X (no longer present)"). Before acting on each item it **re-checks the item's current state** and skips (with a note) if the item already matches the target or has vanished, to avoid clobbering external changes.
+
+We deliberately rejected **all-or-nothing atomic** Apply with rollback. Rolling back heterogeneous OS operations can itself fail, and atomicity would undo many good changes because of a couple of unrelated failures. It is unnecessary here: every successful change already writes its own independently-reversible Change Record (ADR-0005), and a restore point is created before the whole batch — so we get safety and recoverability without transactional complexity. A future reader tempted to make Apply transactional should not: the reversibility model already provides the safety atomicity would buy.
