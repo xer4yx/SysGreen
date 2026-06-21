@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\SysGreen.Core\SysGreen.Core.csproj" />
     <ProjectReference Include="..\..\src\SysGreen.Platform\SysGreen.Platform.csproj" />
     <ProjectReference Include="..\..\src\SysGreen.Data\SysGreen.Data.csproj" />
+    <ProjectReference Include="..\..\src\SysGreen.App\SysGreen.App.csproj" />
   </ItemGroup>
 
 </Project>

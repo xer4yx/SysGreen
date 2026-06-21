@@ -11,8 +11,21 @@
                    FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
         <TabControl>
             <TabItem Header="Recommendations">
-                <ListBox ItemsSource="{Binding Recommendations}" BorderThickness="0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="Apply selected" Command="{Binding ApplyCommand}" Padding="12,4" />
+                        <TextBlock Text="{Binding ApplyStatus}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Recommendations}" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayText}"
+                                          Margin="2" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
             </TabItem>
             <TabItem Header="All Items">
                 <ListBox ItemsSource="{Binding AllItems}" FontFamily="Consolas" BorderThickness="0"

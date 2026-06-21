@@ -59,7 +59,8 @@ public partial class App : Application
         services.AddSingleton<IScheduledTaskProvider, ScheduledTaskProvider>();
         services.AddSingleton<IWindowsServiceProvider, WindowsServiceProvider>();
         services.AddSingleton<Core.Usage.IUsageHistoryProvider, UserAssistUsageHistoryProvider>();
-        services.AddSingleton<IRestorePointService, SystemRestorePointService>();
+        services.AddSingleton<IRestorePointApi, WmiRestorePointApi>();
+        services.AddSingleton<IRestorePointService, RestorePointService>();
 
         // Non-destructive disable/enable + end task (ADR-0005), test-driven controller + adapters
         services.AddSingleton<IStartupApprovedStore, StartupApprovedRegistryStore>();

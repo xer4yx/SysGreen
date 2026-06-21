@@ -28,8 +28,5 @@ public sealed class UserAssistUsageHistoryProvider : IUsageHistoryProvider
 // ItemController is now implemented as StartupApprovedItemController in SysGreen.Core
 // (test-driven, ADR-0005), backed by the StartupApprovedRegistryStore + ProcessTerminator adapters.
 
-/// <summary>TODO: create a restore point via WMI SystemRestore.CreateRestorePoint (ADR-0005, mandatory).</summary>
-public sealed class SystemRestorePointService : IRestorePointService
-{
-    public bool TryCreateRestorePoint(string description) => false;
-}
+// SystemRestorePointService is now RestorePointService in SysGreen.Core (test-driven),
+// backed by the WmiRestorePointApi adapter (ADR-0005).
