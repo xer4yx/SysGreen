@@ -15,10 +15,9 @@ public sealed class Classifier : IClassifier
 
     public Classification Classify(AutostartEntry entry)
     {
-        if (entry.ExecutablePath is { } path)
+        foreach (var exeName in CandidateNames(entry))
         {
-            var exeName = Path.GetFileName(path);
-            var hit = _knowledgeBase.Match(exeName, entry.Publisher, path);
+            var hit = _knowledgeBase.Match(exeName, entry.Publisher, entry.ExecutablePath);
             if (hit is not null)
             {
                 return new Classification(
@@ -31,5 +30,15 @@ public sealed class Classifier : IClassifier
         // install path, updater patterns). Until then, unknowns are Caution and never
         // auto-recommended (ADR-0002).
         return Classification.UnknownCaution;
+    }
+
+    /// <summary>
+    /// KB match candidates in priority order: the --processStart target (the real app, for
+    /// Squirrel-style launchers) before the launcher executable's own filename (ADR-0010).
+    /// </summary>
+    private static IEnumerable<string> CandidateNames(AutostartEntry entry)
+    {
+        if (entry.TargetExecutable is { Length: > 0 } target) yield return target;
+        if (entry.ExecutablePath is { } path) yield return Path.GetFileName(path);
     }
 }

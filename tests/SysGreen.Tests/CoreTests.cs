@@ -91,4 +91,24 @@ public class ClassifierTests
         Assert.Equal(SafetyRating.Safe, classification.Safety);
         Assert.Equal(ClassificationSource.KnowledgeBase, classification.Source);
     }
+
+    [Fact]
+    public void Matches_via_process_start_target_when_launcher_is_an_updater()
+    {
+        // Discord's Run entry launches Update.exe (signed by Discord Inc.) which starts Discord.exe.
+        var discord = new KnowledgeEntry("Discord Inc.", "Discord.exe", null,
+            "Discord", "Chat client", Purpose.Communication, SafetyRating.Safe, null, false);
+        var kb = new JsonKnowledgeBase(new KnowledgeBaseDocument(1, "test", [discord]));
+        var entry = new AutostartEntry("id", "Discord", ItemKind.StartupApp,
+            AutostartLocation.RegistryRunCurrentUser,
+            @"C:\Users\me\AppData\Local\Discord\Update.exe", "Discord Inc.", AutostartState.Enabled)
+        {
+            TargetExecutable = "Discord.exe",
+        };
+
+        var classification = new Classifier(kb).Classify(entry);
+
+        Assert.Equal(Purpose.Communication, classification.Purpose);
+        Assert.Equal(ClassificationSource.KnowledgeBase, classification.Source);
+    }
 }
