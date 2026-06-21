@@ -54,6 +54,7 @@ public partial class App : Application
         services.AddSingleton<IChangeLog>(sp => sp.GetRequiredService<ChangeRecordRepository>());
 
         // Platform providers (ADR-0008 / ADR-0011)
+        services.AddSingleton<IExecutablePublisherReader, AuthenticodePublisherReader>();
         services.AddSingleton<IAutostartProvider, RegistryAutostartProvider>();
         services.AddSingleton<IProcessProvider, ProcessProvider>();
         services.AddSingleton<IScheduledTaskProvider, ScheduledTaskProvider>();
