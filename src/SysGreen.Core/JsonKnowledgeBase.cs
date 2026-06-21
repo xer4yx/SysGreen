@@ -31,7 +31,8 @@ public sealed class JsonKnowledgeBase : IKnowledgeBase
         {
             if (!NameMatches(entry.MatchExecutable, executableName)) continue;
             if (entry.MatchPublisher is { } reqPub &&
-                !string.Equals(reqPub, publisher, StringComparison.OrdinalIgnoreCase)) continue;
+                !string.Equals(PublisherName.Normalize(reqPub), PublisherName.Normalize(publisher),
+                    StringComparison.OrdinalIgnoreCase)) continue;
             if (entry.MatchPathPattern is { } pat && fullPath is not null &&
                 !fullPath.Contains(pat, StringComparison.OrdinalIgnoreCase)) continue;
             return entry;

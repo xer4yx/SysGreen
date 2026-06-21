@@ -66,6 +66,15 @@ public interface IProcessTerminator
     void Terminate(int pid);
 }
 
+/// <summary>
+/// Reads the Authenticode publisher (signer common name) of an executable, or null if it's
+/// unsigned/unreadable. Powers publisher-based Knowledge Base matching (ADR-0010).
+/// </summary>
+public interface IExecutablePublisherReader
+{
+    string? ReadPublisher(string executablePath);
+}
+
 /// <summary>Abstracts the system clock so time-dependent behavior is testable.</summary>
 public interface IClock
 {

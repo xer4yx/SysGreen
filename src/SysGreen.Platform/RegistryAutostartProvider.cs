@@ -5,12 +5,18 @@ using SysGreen.Core.Domain;
 namespace SysGreen.Platform;
 
 /// <summary>
-/// Enumerates Autostart Entries from the HKCU/HKLM Run keys. (TODO: also read the Startup
-/// folders and reflect the StartupApproved disable flags as state — ADR-0005.)
+/// Enumerates Autostart Entries from the HKCU/HKLM Run keys, populating each entry's publisher
+/// from its executable's Authenticode signature so the Knowledge Base can match it (ADR-0010).
+/// (TODO: also read the Startup folders and reflect the StartupApproved disable flags as state.)
 /// </summary>
 public sealed class RegistryAutostartProvider : IAutostartProvider
 {
     private const string RunSubKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
+    private readonly IExecutablePublisherReader _publisherReader;
+
+    public RegistryAutostartProvider(IExecutablePublisherReader publisherReader) =>
+        _publisherReader = publisherReader;
 
     public IReadOnlyList<AutostartEntry> Enumerate()
     {
@@ -20,7 +26,7 @@ public sealed class RegistryAutostartProvider : IAutostartProvider
         return entries;
     }
 
-    private static void ReadRunKey(RegistryKey hive, AutostartLocation location, List<AutostartEntry> sink)
+    private void ReadRunKey(RegistryKey hive, AutostartLocation location, List<AutostartEntry> sink)
     {
         using var key = hive.OpenSubKey(RunSubKey);
         if (key is null) return;
@@ -28,13 +34,14 @@ public sealed class RegistryAutostartProvider : IAutostartProvider
         foreach (var name in key.GetValueNames())
         {
             var command = key.GetValue(name)?.ToString();
+            var executablePath = ExtractExecutablePath(command);
             sink.Add(new AutostartEntry(
                 Id: $"{location}:{name}",
                 DisplayName: name,
                 Kind: ItemKind.StartupApp,
                 Location: location,
-                ExecutablePath: ExtractExecutablePath(command),
-                Publisher: null, // TODO: read Authenticode publisher for KB matching (ADR-0010)
+                ExecutablePath: executablePath,
+                Publisher: executablePath is null ? null : _publisherReader.ReadPublisher(executablePath),
                 State: AutostartState.Enabled)); // TODO: consult StartupApproved flags
         }
     }
