@@ -1,4 +1,5 @@
 using Dapper;
+using SysGreen.Core.Abstractions;
 using SysGreen.Core.ChangeLog;
 using SysGreen.Core.Usage;
 
@@ -26,10 +27,22 @@ public sealed class UsageRepository : IUsageRepository
 
     public IReadOnlyList<UsageRecord> GetAll()
     {
+        // Mapped explicitly: SQLite returns INTEGER as Int64 and TEXT as String, which don't
+        // match the record's (string, int, DateTime?) constructor for Dapper auto-materialization.
         using var c = _factory.OpenConnection();
-        return c.Query<UsageRecord>(
-            "SELECT executable_path AS ExecutablePath, launch_count AS LaunchCount, " +
-            "last_launch_utc AS LastLaunchUtc FROM usage;").AsList();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT executable_path, launch_count, last_launch_utc FROM usage;";
+        using var reader = cmd.ExecuteReader();
+
+        var records = new List<UsageRecord>();
+        while (reader.Read())
+        {
+            records.Add(new UsageRecord(
+                reader.GetString(0),
+                (int)reader.GetInt64(1),
+                reader.IsDBNull(2) ? null : reader.GetDateTime(2)));
+        }
+        return records;
     }
 
     public void RecordLaunch(string executablePath, DateTime whenUtc)
@@ -63,10 +76,13 @@ public sealed class UsageRepository : IUsageRepository
     }
 }
 
-public sealed class ChangeRecordRepository : IChangeRecordRepository
+public sealed class ChangeRecordRepository : IChangeRecordRepository, IChangeLog
 {
     private readonly IConnectionFactory _factory;
     public ChangeRecordRepository(IConnectionFactory factory) => _factory = factory;
+
+    /// <summary>The Core <see cref="IChangeLog"/> port — used by the Apply flow.</summary>
+    public void Record(ChangeRecord record) => Add(record);
 
     public void Add(ChangeRecord r)
     {
@@ -91,13 +107,30 @@ public sealed class ChangeRecordRepository : IChangeRecordRepository
     public IReadOnlyList<ChangeRecord> GetRecent(int limit = 200)
     {
         using var c = _factory.OpenConnection();
-        return c.Query<ChangeRecord>(
+        using var cmd = c.CreateCommand();
+        cmd.CommandText =
             """
-            SELECT id AS Id, item_id AS ItemId, item_name AS ItemName, action AS Action,
-                   prior_state AS PriorState, new_state AS NewState, mechanism AS Mechanism,
-                   timestamp_utc AS TimestampUtc, success AS Success, error AS Error
-            FROM change_record ORDER BY timestamp_utc DESC LIMIT @Limit;
-            """,
-            new { Limit = limit }).AsList();
+            SELECT id, item_id, item_name, action, prior_state, new_state, mechanism,
+                   timestamp_utc, success, error
+            FROM change_record ORDER BY timestamp_utc DESC LIMIT $limit;
+            """;
+        var limitParam = cmd.CreateParameter();
+        limitParam.ParameterName = "$limit";
+        limitParam.Value = limit;
+        cmd.Parameters.Add(limitParam);
+        using var reader = cmd.ExecuteReader();
+
+        var records = new List<ChangeRecord>();
+        while (reader.Read())
+        {
+            records.Add(new ChangeRecord(
+                reader.GetString(0), reader.GetString(1), reader.GetString(2),
+                Enum.Parse<ChangeAction>(reader.GetString(3)),
+                reader.GetString(4), reader.GetString(5), reader.GetString(6),
+                reader.GetDateTime(7),
+                reader.GetInt64(8) != 0,
+                reader.IsDBNull(9) ? null : reader.GetString(9)));
+        }
+        return records;
     }
 }

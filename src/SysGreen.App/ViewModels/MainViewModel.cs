@@ -1,7 +1,10 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using SysGreen.Core.Abstractions;
+using SysGreen.Core.Apply;
+using SysGreen.Core.ChangeLog;
 using SysGreen.Core.Domain;
 using SysGreen.Core.Knowledge;
 using SysGreen.Core.Recommendations;
@@ -10,9 +13,9 @@ using SysGreen.Data;
 namespace SysGreen.App.ViewModels;
 
 /// <summary>
-/// Drives the three-view shell (ADR / Q15): Recommendations, All Items (grouped by Purpose),
-/// and History. This scaffold runs the real pipeline end-to-end — enumerate Run keys,
-/// classify against the Knowledge Base, and produce recommendations — rendered as text.
+/// Drives the three-view shell (ADR / Q15): Recommendations (selectable + Apply), All Items,
+/// and History. Apply commits the checked recommendations through <see cref="IApplyService"/>
+/// (never auto-applied — ADR-0007).
 /// </summary>
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -22,11 +25,15 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IRecommendationEngine _engine;
     private readonly IUsageRepository _usage;
     private readonly IChangeRecordRepository _history;
+    private readonly IApplyService _apply;
 
     [ObservableProperty]
     private string _summary = "Loading…";
 
-    public ObservableCollection<string> Recommendations { get; } = [];
+    [ObservableProperty]
+    private string _applyStatus = "";
+
+    public ObservableCollection<RecommendationViewModel> Recommendations { get; } = [];
     public ObservableCollection<string> AllItems { get; } = [];
     public ObservableCollection<string> History { get; } = [];
 
@@ -36,7 +43,8 @@ public sealed partial class MainViewModel : ObservableObject
         IClassifier classifier,
         IRecommendationEngine engine,
         IUsageRepository usage,
-        IChangeRecordRepository history)
+        IChangeRecordRepository history,
+        IApplyService apply)
     {
         _autostart = autostart;
         _processes = processes;
@@ -44,6 +52,32 @@ public sealed partial class MainViewModel : ObservableObject
         _engine = engine;
         _usage = usage;
         _history = history;
+        _apply = apply;
+        Refresh();
+    }
+
+    [RelayCommand]
+    private void Apply()
+    {
+        var selected = Recommendations
+            .Where(r => r.IsSelected && r.Item.Autostart is not null)
+            .ToList();
+        if (selected.Count == 0)
+        {
+            ApplyStatus = "Nothing selected.";
+            return;
+        }
+
+        var changes = selected
+            .Select(r => new PendingChange(r.Item.Autostart!, ChangeAction.Disable))
+            .ToList();
+
+        var result = _apply.Apply(changes);
+        ApplyStatus = result.Aborted
+            ? "Couldn't create a restore point — no changes were made."
+            : $"Disabled {result.SucceededCount} of {changes.Count}" +
+              (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+
         Refresh();
     }
 
@@ -57,10 +91,8 @@ public sealed partial class MainViewModel : ObservableObject
         var recommendations = _engine.Recommend(items, usageRecords, DateTime.UtcNow);
 
         Recommendations.Clear();
-        if (recommendations.Count == 0)
-            Recommendations.Add("No recommendations — nothing safe-and-unneeded found on this machine yet.");
         foreach (var r in recommendations)
-            Recommendations.Add($"{r.Item.DisplayName}  —  {r.Reason}  [{r.Source}]");
+            Recommendations.Add(new RecommendationViewModel(r));
 
         AllItems.Clear();
         foreach (var i in items.OrderBy(i => i.Purpose).ThenBy(i => i.DisplayName))
