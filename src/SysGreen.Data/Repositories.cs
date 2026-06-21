@@ -1,4 +1,5 @@
 using Dapper;
+using SysGreen.Core.Abstractions;
 using SysGreen.Core.ChangeLog;
 using SysGreen.Core.Usage;
 
@@ -63,10 +64,13 @@ public sealed class UsageRepository : IUsageRepository
     }
 }
 
-public sealed class ChangeRecordRepository : IChangeRecordRepository
+public sealed class ChangeRecordRepository : IChangeRecordRepository, IChangeLog
 {
     private readonly IConnectionFactory _factory;
     public ChangeRecordRepository(IConnectionFactory factory) => _factory = factory;
+
+    /// <summary>The Core <see cref="IChangeLog"/> port — used by the Apply flow.</summary>
+    public void Record(ChangeRecord record) => Add(record);
 
     public void Add(ChangeRecord r)
     {
