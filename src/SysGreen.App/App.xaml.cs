@@ -30,8 +30,20 @@ public partial class App : Application
         // Ensure the local SQLite schema exists (ADR-0006).
         _services.GetRequiredService<DatabaseBootstrapper>().EnsureCreated();
 
+        // On first run, seed the habit store from existing Windows launch history (ADR-0008).
+        SeedHabitHistory(_services);
+
         var window = _services.GetRequiredService<MainWindow>();
         window.Show();
+    }
+
+    private static void SeedHabitHistory(IServiceProvider services)
+    {
+        var usage = services.GetRequiredService<IUsageRepository>();
+        if (usage.GetAll().Count > 0) return; // already populated
+
+        var seed = services.GetRequiredService<Core.Usage.IUsageHistoryProvider>().ReadSeedHistory();
+        if (seed.Count > 0) usage.UpsertMany(seed);
     }
 
     protected override void OnExit(ExitEventArgs e)

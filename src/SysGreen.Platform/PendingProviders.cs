@@ -1,6 +1,5 @@
 using SysGreen.Core.Abstractions;
 using SysGreen.Core.Domain;
-using SysGreen.Core.Usage;
 
 namespace SysGreen.Platform;
 
@@ -19,11 +18,8 @@ public sealed class WindowsServiceProvider : IWindowsServiceProvider
     public IReadOnlyList<AutostartEntry> Enumerate() => [];
 }
 
-/// <summary>TODO: read + ROT13-decode HKCU UserAssist as the habit seed (ADR-0008).</summary>
-public sealed class UserAssistUsageHistoryProvider : IUsageHistoryProvider
-{
-    public IReadOnlyList<UsageRecord> ReadSeedHistory() => [];
-}
+// UserAssistUsageHistoryProvider is now a real implementation in its own file (TDD'd decoder,
+// ADR-0008).
 
 // ItemController is now implemented as StartupApprovedItemController in SysGreen.Core
 // (test-driven, ADR-0005), backed by the StartupApprovedRegistryStore + ProcessTerminator adapters.
