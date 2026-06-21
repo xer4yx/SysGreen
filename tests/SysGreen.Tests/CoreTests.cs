@@ -49,6 +49,27 @@ public class RecommendationEngineTests
     }
 
     [Fact]
+    public void Habit_matches_usage_by_executable_filename_not_full_path()
+    {
+        // Autostart records a full path; UserAssist records the same exe under a known-folder
+        // GUID prefix. They must still correlate by filename (ADR-0008).
+        var entry = new AutostartEntry("id", "Spotify", ItemKind.StartupApp,
+            AutostartLocation.RegistryRunCurrentUser,
+            @"C:\Users\me\AppData\Roaming\Spotify\Spotify.exe", null, AutostartState.Enabled);
+        var item = new ManageableItem("id", "Spotify", ItemKind.StartupApp, entry, null,
+            Purpose.Media, SafetyRating.Safe, null);
+        var usage = new[]
+        {
+            new UsageRecord(@"{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\Spotify.exe", 9, Now.AddDays(-60)),
+        };
+
+        var recs = _engine.Recommend([item], usage, Now);
+
+        Assert.Single(recs);
+        Assert.Equal(RecommendationSource.Habit, recs[0].Source);
+    }
+
+    [Fact]
     public void Does_not_recommend_recently_used_non_overhead_app()
     {
         var item = Item(Purpose.Media, SafetyRating.Safe);

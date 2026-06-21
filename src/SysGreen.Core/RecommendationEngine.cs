@@ -20,8 +20,10 @@ public sealed class RecommendationEngine : IRecommendationEngine
         IReadOnlyList<UsageRecord> usage,
         DateTime nowUtc)
     {
-        var usageByPath = new Dictionary<string, UsageRecord>(StringComparer.OrdinalIgnoreCase);
-        foreach (var u in usage) usageByPath[u.ExecutablePath] = u;
+        // Keyed by executable filename: UserAssist records paths under known-folder GUID prefixes
+        // while autostart entries carry full paths, so a full-path match would miss (ADR-0008).
+        var usageByName = new Dictionary<string, UsageRecord>(StringComparer.OrdinalIgnoreCase);
+        foreach (var u in usage) usageByName[ExecutableFileName(u.ExecutablePath)] = u;
 
         var recommendations = new List<Recommendation>();
         foreach (var item in items)
@@ -34,7 +36,7 @@ public sealed class RecommendationEngine : IRecommendationEngine
 
             UsageRecord? record = null;
             if (item.Autostart?.ExecutablePath is { } path)
-                usageByPath.TryGetValue(path, out record);
+                usageByName.TryGetValue(ExecutableFileName(path), out record);
 
             bool staticEvidence = isOverhead;
             bool habitEvidence = record is not null && record.IsAbandoned(nowUtc, _abandonedThresholdDays);
@@ -86,6 +88,8 @@ public sealed class RecommendationEngine : IRecommendationEngine
         Purpose.Gaming => "gaming app",
         _ => "background item",
     };
+
+    private static string ExecutableFileName(string path) => System.IO.Path.GetFileName(path);
 
     private static string FormatRam(long bytes) =>
         bytes >= 1L << 30 ? $"{bytes / (double)(1L << 30):0.#} GB" : $"{bytes / (1L << 20)} MB";
