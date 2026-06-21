@@ -47,3 +47,27 @@ public interface IRestorePointService
     /// <summary>True if System Restore is enabled and a point was created.</summary>
     bool TryCreateRestorePoint(string description);
 }
+
+/// <summary>
+/// Reads/writes the Windows StartupApproved flag for a startup item (the non-destructive
+/// enable/disable mechanism, ADR-0005). The implementation maps an <see cref="AutostartLocation"/>
+/// to the correct registry subkey; callers stay free of registry-path knowledge.
+/// </summary>
+public interface IStartupApprovedStore
+{
+    /// <summary>The current flag bytes, or null if the item has never been toggled (= enabled).</summary>
+    byte[]? ReadFlag(AutostartLocation location, string valueName);
+    void WriteFlag(AutostartLocation location, string valueName, byte[] data);
+}
+
+/// <summary>Terminates a live process (the End Task mechanism).</summary>
+public interface IProcessTerminator
+{
+    void Terminate(int pid);
+}
+
+/// <summary>Abstracts the system clock so time-dependent behavior is testable.</summary>
+public interface IClock
+{
+    DateTime UtcNow { get; }
+}
