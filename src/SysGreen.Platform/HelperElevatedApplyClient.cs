@@ -40,8 +40,15 @@ public sealed class HelperElevatedApplyClient : IElevatedApplyClient
                 ApplyJobSerializer.CurrentVersion, _databasePath, resultPath, elevatedChanges);
             File.WriteAllText(jobPath, ApplyJobSerializer.SerializeJob(job));
 
-            if (!TryRunElevated(jobPath, out var failureReason))
-                return Failed(elevatedChanges, failureReason);
+            switch (TryRunElevated(jobPath))
+            {
+                case ElevationOutcome.Declined:
+                    // The user dismissed the UAC prompt: nothing was attempted (ADR-0004).
+                    return new ApplyResult(
+                        RestorePointRequired: false, RestorePointCreated: false, []) { ElevationDeclined = true };
+                case ElevationOutcome.CouldNotStart:
+                    return Failed(elevatedChanges, "The elevated helper could not be started.");
+            }
 
             if (!File.Exists(resultPath))
                 return Failed(elevatedChanges, "The elevated helper did not report a result.");
@@ -59,7 +66,9 @@ public sealed class HelperElevatedApplyClient : IElevatedApplyClient
         }
     }
 
-    private bool TryRunElevated(string jobPath, out string failureReason)
+    private enum ElevationOutcome { Ran, Declined, CouldNotStart }
+
+    private ElevationOutcome TryRunElevated(string jobPath)
     {
         var psi = new ProcessStartInfo
         {
@@ -74,19 +83,13 @@ public sealed class HelperElevatedApplyClient : IElevatedApplyClient
         try
         {
             using var process = Process.Start(psi);
-            if (process is null)
-            {
-                failureReason = "The elevated helper could not be started.";
-                return false;
-            }
+            if (process is null) return ElevationOutcome.CouldNotStart;
             process.WaitForExit();
-            failureReason = "";
-            return true;
+            return ElevationOutcome.Ran;
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
         {
-            failureReason = "Elevation was declined, so no admin changes were made.";
-            return false;
+            return ElevationOutcome.Declined;
         }
     }
 

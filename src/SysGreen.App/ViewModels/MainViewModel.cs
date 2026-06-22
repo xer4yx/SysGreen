@@ -73,10 +73,15 @@ public sealed partial class MainViewModel : ObservableObject
             .ToList();
 
         var result = _apply.Apply(changes);
-        ApplyStatus = result.Aborted
-            ? "Couldn't create a restore point — no changes were made."
-            : $"Disabled {result.SucceededCount} of {changes.Count}" +
-              (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        ApplyStatus = result switch
+        {
+            { ElevationDeclined: true } =>
+                "No admin changes were made — you declined the Windows permission prompt.",
+            { Aborted: true } =>
+                "Couldn't create a restore point — no changes were made.",
+            _ => $"Disabled {result.SucceededCount} of {changes.Count}" +
+                 (result.FailedCount > 0 ? $", {result.FailedCount} failed." : "."),
+        };
 
         Refresh();
     }

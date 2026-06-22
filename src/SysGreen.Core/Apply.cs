@@ -14,6 +14,12 @@ public sealed record ApplyResult(
     bool RestorePointCreated,
     IReadOnlyList<ChangeRecord> Records)
 {
+    /// <summary>
+    /// True when an admin-only batch was not applied because the user dismissed the UAC prompt
+    /// (ADR-0004). Distinct from a restore-point failure — nothing was attempted at all.
+    /// </summary>
+    public bool ElevationDeclined { get; init; }
+
     /// <summary>True when a required restore point could not be created, so nothing was applied.</summary>
     [JsonIgnore]
     public bool Aborted => RestorePointRequired && !RestorePointCreated;
