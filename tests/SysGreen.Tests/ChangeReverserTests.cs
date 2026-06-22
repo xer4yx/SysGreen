@@ -41,6 +41,20 @@ public class ChangeReverserTests
     }
 
     [Fact]
+    public void Reversing_targets_the_recorded_mechanism_key_not_the_display_name()
+    {
+        // A Startup-folder item disables under its shortcut file name; the undo must use the same key.
+        var record = new ChangeRecord("id", "Folder:Spotify", "Spotify", ChangeAction.Disable,
+            "Enabled", "Disabled", "StartupApproved", When, true, null)
+            { Location = AutostartLocation.StartupFolderCurrentUser, MechanismKey = "Spotify.lnk" };
+        var apply = new CapturingApplyService();
+
+        new ChangeReverser(apply).Reverse([record]);
+
+        Assert.Equal("Spotify.lnk", Assert.Single(apply.LastBatch).Entry.MechanismKey);
+    }
+
+    [Fact]
     public void Reversing_an_admin_change_carries_the_elevation_requirement()
     {
         var record = new ChangeRecord("id", "HKLM:Updater", "Updater", ChangeAction.Disable,

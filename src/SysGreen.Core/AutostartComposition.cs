@@ -38,7 +38,7 @@ public static class StartupFolderEntry
             Publisher: publisher,
             State: AutostartState.Enabled) // the StartupApproved decorator resolves the real state
         {
-            StartupApprovedValueName = fileName,
+            MechanismKey = fileName,
         };
     }
 }

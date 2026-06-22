@@ -28,7 +28,7 @@ public sealed class StartupApprovedAutostartProvider : IAutostartProvider
         // tasks) keep whatever state their own provider reported.
         if (!HasStartupApprovedFlag(entry.Location)) return entry;
 
-        var flag = _store.ReadFlag(entry.Location, entry.StartupApprovedValueName);
+        var flag = _store.ReadFlag(entry.Location, entry.MechanismKey);
         var state = StartupApprovedFlag.IsEnabled(flag) ? AutostartState.Enabled : AutostartState.Disabled;
         return entry with { State = state };
     }

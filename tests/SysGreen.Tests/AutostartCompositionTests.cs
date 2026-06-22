@@ -30,7 +30,7 @@ public class AutostartCompositionTests
             AutostartLocation.StartupFolderCurrentUser, @"C:\x\Spotify.exe", "Spotify AB");
 
         Assert.Equal("Spotify", entry.DisplayName);          // friendly: no ".lnk"
-        Assert.Equal("Spotify.lnk", entry.StartupApprovedValueName); // flag is keyed by the link file name
+        Assert.Equal("Spotify.lnk", entry.MechanismKey); // flag is keyed by the link file name
         Assert.Equal(AutostartLocation.StartupFolderCurrentUser, entry.Location);
         Assert.Equal(ItemKind.StartupApp, entry.Kind);
         Assert.Equal(@"C:\x\Spotify.exe", entry.ExecutablePath);

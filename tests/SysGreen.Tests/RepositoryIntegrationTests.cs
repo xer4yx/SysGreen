@@ -73,10 +73,11 @@ public sealed class RepositoryIntegrationTests : IDisposable
         repo.Add(new ChangeRecord("id2", "HKLM:Updater", "Updater", ChangeAction.Disable,
             "Enabled", "Disabled", "StartupApproved",
             new DateTime(2026, 6, 22, 9, 0, 0, DateTimeKind.Utc), true, null)
-            { BatchId = "batch-1", Location = AutostartLocation.RegistryRunLocalMachine });
+            { BatchId = "batch-1", Location = AutostartLocation.RegistryRunLocalMachine, MechanismKey = @"\Updater" });
 
         var record = Assert.Single(repo.GetRecent());
         Assert.Equal("batch-1", record.BatchId);
         Assert.Equal(AutostartLocation.RegistryRunLocalMachine, record.Location);
+        Assert.Equal(@"\Updater", record.MechanismKey);
     }
 }

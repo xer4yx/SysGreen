@@ -41,7 +41,7 @@ public class StartupApprovedStateTests
         // A Startup-folder item displays "Spotify" but its flag is keyed by the shortcut file name.
         var folder = new AutostartEntry("Folder:Spotify", "Spotify", ItemKind.StartupApp,
             AutostartLocation.StartupFolderCurrentUser, @"C:\x\Spotify.exe", null, AutostartState.Enabled)
-            { StartupApprovedValueName = "Spotify.lnk" };
+            { MechanismKey = "Spotify.lnk" };
         var store = new FakeStore();
         store.WriteFlag(AutostartLocation.StartupFolderCurrentUser, "Spotify.lnk",
             StartupApprovedFlag.EncodeDisabled(When));

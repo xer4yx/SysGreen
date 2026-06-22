@@ -51,7 +51,7 @@ public class ItemControllerTests
         var store = new FakeStore();
         var folder = new AutostartEntry("Folder:Spotify", "Spotify", ItemKind.StartupApp,
             AutostartLocation.StartupFolderCurrentUser, @"C:\x\Spotify.exe", null, AutostartState.Enabled)
-            { StartupApprovedValueName = "Spotify.lnk" };
+            { MechanismKey = "Spotify.lnk" };
 
         Controller(store).Disable(folder);
 
@@ -68,6 +68,18 @@ public class ItemControllerTests
 
         Assert.Equal(HkcuRun, record.Location);
         Assert.True(record.IsReversible);
+    }
+
+    [Fact]
+    public void Disable_records_the_mechanism_key_so_a_reversal_re_targets_the_same_item()
+    {
+        var folder = new AutostartEntry("Folder:Spotify", "Spotify", ItemKind.StartupApp,
+            AutostartLocation.StartupFolderCurrentUser, @"C:\x\Spotify.exe", null, AutostartState.Enabled)
+            { MechanismKey = "Spotify.lnk" };
+
+        var record = Controller(new FakeStore()).Disable(folder);
+
+        Assert.Equal("Spotify.lnk", record.MechanismKey);
     }
 
     [Fact]
