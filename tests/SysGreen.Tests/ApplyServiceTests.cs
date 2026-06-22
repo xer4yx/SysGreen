@@ -73,6 +73,25 @@ public class ApplyServiceTests
     }
 
     [Fact]
+    public void All_records_in_one_apply_share_a_batch_id_distinct_across_applies()
+    {
+        var log = new FakeChangeLog();
+        var service = Build(log, new FakeRestore(succeeds: true));
+
+        service.Apply(
+        [
+            new PendingChange(Hkcu("Spotify"), ChangeAction.Disable),
+            new PendingChange(Hkcu("Discord"), ChangeAction.Disable),
+        ]);
+        service.Apply([new PendingChange(Hkcu("Steam"), ChangeAction.Disable)]);
+
+        var batchIds = log.Records.Select(r => r.BatchId).ToList();
+        Assert.All(batchIds, id => Assert.False(string.IsNullOrEmpty(id)));
+        Assert.Equal(batchIds[0], batchIds[1]); // same Apply → one batch
+        Assert.NotEqual(batchIds[0], batchIds[2]); // a later Apply → a new batch
+    }
+
+    [Fact]
     public void Continues_on_error_and_records_the_failure()
     {
         var log = new FakeChangeLog();
@@ -86,7 +105,8 @@ public class ApplyServiceTests
         Assert.Equal(1, result.SucceededCount);
         Assert.Equal(1, result.FailedCount);
         Assert.Equal(2, log.Records.Count); // both outcomes are persisted
-        Assert.Contains(log.Records, r => !r.Success && r.ItemName == "Discord");
+        Assert.Contains(log.Records, r => !r.Success && r.ItemName == "Discord"
+            && r.Location == AutostartLocation.RegistryRunCurrentUser); // location captured even on failure
     }
 
     private sealed class FakeController : IItemController

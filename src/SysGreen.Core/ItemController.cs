@@ -27,20 +27,22 @@ public sealed class StartupApprovedItemController : IItemController
     {
         var prior = ReadState(entry);
         _store.WriteFlag(entry.Location, entry.DisplayName, StartupApprovedFlag.EncodeDisabled(_clock.UtcNow));
-        return Record(entry.Id, entry.DisplayName, ChangeAction.Disable, prior, "Disabled", "StartupApproved");
+        return Record(entry.Id, entry.DisplayName, ChangeAction.Disable, prior, "Disabled", "StartupApproved", entry.Location);
     }
 
     public ChangeRecord Enable(AutostartEntry entry)
     {
         var prior = ReadState(entry);
         _store.WriteFlag(entry.Location, entry.DisplayName, StartupApprovedFlag.EncodeEnabled());
-        return Record(entry.Id, entry.DisplayName, ChangeAction.Enable, prior, "Enabled", "StartupApproved");
+        return Record(entry.Id, entry.DisplayName, ChangeAction.Enable, prior, "Enabled", "StartupApproved", entry.Location);
     }
 
     public ChangeRecord EndTask(ProcessInfo process)
     {
         _terminator.Terminate(process.Pid);
-        return Record(process.Pid.ToString(), process.Name, ChangeAction.EndTask, "Running", "Ended", "ProcessKill");
+        // A live process has no Autostart Entry, so no location and nothing to reverse (transient).
+        return Record(process.Pid.ToString(), process.Name, ChangeAction.EndTask, "Running", "Ended", "ProcessKill",
+            AutostartLocation.Unknown);
     }
 
     /// <summary>Reads the item's current state from the StartupApproved flag (re-check, ADR-0013).</summary>
@@ -48,6 +50,8 @@ public sealed class StartupApprovedItemController : IItemController
         StartupApprovedFlag.IsEnabled(_store.ReadFlag(entry.Location, entry.DisplayName)) ? "Enabled" : "Disabled";
 
     private ChangeRecord Record(
-        string itemId, string itemName, ChangeAction action, string prior, string next, string mechanism) =>
-        new(Guid.NewGuid().ToString("n"), itemId, itemName, action, prior, next, mechanism, _clock.UtcNow, true, null);
+        string itemId, string itemName, ChangeAction action, string prior, string next, string mechanism,
+        AutostartLocation location) =>
+        new(Guid.NewGuid().ToString("n"), itemId, itemName, action, prior, next, mechanism, _clock.UtcNow, true, null)
+        { Location = location };
 }

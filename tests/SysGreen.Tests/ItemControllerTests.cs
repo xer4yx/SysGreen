@@ -46,6 +46,15 @@ public class ItemControllerTests
     }
 
     [Fact]
+    public void Disable_records_the_entrys_location_so_the_change_can_be_reversed_precisely()
+    {
+        var record = Controller(new FakeStore()).Disable(Entry());
+
+        Assert.Equal(HkcuRun, record.Location);
+        Assert.True(record.IsReversible);
+    }
+
+    [Fact]
     public void Disable_on_already_disabled_item_records_prior_disabled()
     {
         var store = new FakeStore();
