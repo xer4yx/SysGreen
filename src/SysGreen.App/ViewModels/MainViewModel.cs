@@ -129,7 +129,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         AllItems.Clear();
         foreach (var i in items.OrderBy(i => i.Purpose).ThenBy(i => i.DisplayName))
-            AllItems.Add($"{i.DisplayName,-32} [{i.Purpose}/{i.Safety}]  " +
+            AllItems.Add($"{i.DisplayName,-32} [{i.Purpose}/{i.Safety}]  {i.Autostart?.State,-8}  " +
                          $"{(i.IsRunning ? "running" : "stopped")}  ({i.Autostart?.Location})");
 
         History.Clear();

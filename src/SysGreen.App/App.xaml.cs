@@ -67,7 +67,12 @@ public partial class App : Application
 
         // Platform providers (ADR-0008 / ADR-0011)
         services.AddSingleton<IExecutablePublisherReader, AuthenticodePublisherReader>();
-        services.AddSingleton<IAutostartProvider, RegistryAutostartProvider>();
+        // Autostart enumeration (ADR-0005/0008): raw Run-key provider, decorated so each entry's real
+        // enable/disable state is read back from the Windows StartupApproved flags.
+        services.AddSingleton<RegistryAutostartProvider>();
+        services.AddSingleton<IAutostartProvider>(sp => new StartupApprovedAutostartProvider(
+            sp.GetRequiredService<RegistryAutostartProvider>(),
+            sp.GetRequiredService<IStartupApprovedStore>()));
         services.AddSingleton<IProcessProvider, ProcessProvider>();
         services.AddSingleton<IScheduledTaskProvider, ScheduledTaskProvider>();
         services.AddSingleton<IWindowsServiceProvider, WindowsServiceProvider>();

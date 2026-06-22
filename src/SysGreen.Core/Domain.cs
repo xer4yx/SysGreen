@@ -88,6 +88,19 @@ public sealed record AutostartEntry(
     /// </summary>
     public string? TargetExecutable { get; init; }
 
+    private readonly string? _startupApprovedValueName;
+
+    /// <summary>
+    /// The value name under the Windows StartupApproved key that holds this entry's enable/disable
+    /// flag — the Run value name for a Run-key entry, or the shortcut file name (e.g. "Spotify.lnk")
+    /// for a Startup-folder entry. Defaults to <see cref="DisplayName"/>.
+    /// </summary>
+    public string StartupApprovedValueName
+    {
+        get => _startupApprovedValueName ?? DisplayName;
+        init => _startupApprovedValueName = value;
+    }
+
     /// <summary>True when changing this entry's state requires admin elevation.</summary>
     [JsonIgnore]
     public bool RequiresElevation => Location is

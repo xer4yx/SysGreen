@@ -26,14 +26,14 @@ public sealed class StartupApprovedItemController : IItemController
     public ChangeRecord Disable(AutostartEntry entry)
     {
         var prior = ReadState(entry);
-        _store.WriteFlag(entry.Location, entry.DisplayName, StartupApprovedFlag.EncodeDisabled(_clock.UtcNow));
+        _store.WriteFlag(entry.Location, entry.StartupApprovedValueName, StartupApprovedFlag.EncodeDisabled(_clock.UtcNow));
         return Record(entry.Id, entry.DisplayName, ChangeAction.Disable, prior, "Disabled", "StartupApproved", entry.Location);
     }
 
     public ChangeRecord Enable(AutostartEntry entry)
     {
         var prior = ReadState(entry);
-        _store.WriteFlag(entry.Location, entry.DisplayName, StartupApprovedFlag.EncodeEnabled());
+        _store.WriteFlag(entry.Location, entry.StartupApprovedValueName, StartupApprovedFlag.EncodeEnabled());
         return Record(entry.Id, entry.DisplayName, ChangeAction.Enable, prior, "Enabled", "StartupApproved", entry.Location);
     }
 
@@ -47,7 +47,7 @@ public sealed class StartupApprovedItemController : IItemController
 
     /// <summary>Reads the item's current state from the StartupApproved flag (re-check, ADR-0013).</summary>
     private string ReadState(AutostartEntry entry) =>
-        StartupApprovedFlag.IsEnabled(_store.ReadFlag(entry.Location, entry.DisplayName)) ? "Enabled" : "Disabled";
+        StartupApprovedFlag.IsEnabled(_store.ReadFlag(entry.Location, entry.StartupApprovedValueName)) ? "Enabled" : "Disabled";
 
     private ChangeRecord Record(
         string itemId, string itemName, ChangeAction action, string prior, string next, string mechanism,
