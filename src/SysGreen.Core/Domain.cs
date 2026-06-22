@@ -80,6 +80,12 @@ public sealed record AutostartEntry(
     string? Publisher,
     AutostartState State)
 {
+    /// <summary>
+    /// For Squirrel-style launchers (e.g. Discord's <c>Update.exe --processStart Discord.exe</c>),
+    /// the real application executable name. Null for ordinary entries. Used for KB matching.
+    /// </summary>
+    public string? TargetExecutable { get; init; }
+
     /// <summary>True when changing this entry's state requires admin elevation.</summary>
     public bool RequiresElevation => Location is
         AutostartLocation.RegistryRunLocalMachine or

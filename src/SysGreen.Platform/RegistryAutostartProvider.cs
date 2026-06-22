@@ -34,29 +34,18 @@ public sealed class RegistryAutostartProvider : IAutostartProvider
         foreach (var name in key.GetValueNames())
         {
             var command = key.GetValue(name)?.ToString();
-            var executablePath = ExtractExecutablePath(command);
+            var (launcher, target) = LaunchCommand.Parse(command);
             sink.Add(new AutostartEntry(
                 Id: $"{location}:{name}",
                 DisplayName: name,
                 Kind: ItemKind.StartupApp,
                 Location: location,
-                ExecutablePath: executablePath,
-                Publisher: executablePath is null ? null : _publisherReader.ReadPublisher(executablePath),
-                State: AutostartState.Enabled)); // TODO: consult StartupApproved flags
+                ExecutablePath: launcher,
+                Publisher: launcher is null ? null : _publisherReader.ReadPublisher(launcher),
+                State: AutostartState.Enabled) // TODO: consult StartupApproved flags
+            {
+                TargetExecutable = target,
+            });
         }
-    }
-
-    /// <summary>Best-effort extraction of the exe path from a (possibly quoted, arg-bearing) command.</summary>
-    private static string? ExtractExecutablePath(string? command)
-    {
-        if (string.IsNullOrWhiteSpace(command)) return null;
-        command = command.Trim();
-        if (command.StartsWith('"'))
-        {
-            var end = command.IndexOf('"', 1);
-            return end > 0 ? command[1..end] : command;
-        }
-        var space = command.IndexOf(' ');
-        return space > 0 ? command[..space] : command;
     }
 }
