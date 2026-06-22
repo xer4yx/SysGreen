@@ -46,7 +46,8 @@ public class MainViewModelApplyTests
         var history = Substitute.For<IChangeRecordRepository>();
         history.GetRecent(Arg.Any<int>()).Returns(Array.Empty<ChangeRecord>());
 
-        return new MainViewModel(autostart, processes, classifier, engine, usage, history, apply);
+        return new MainViewModel(autostart, processes, classifier, engine, usage, history, apply,
+            Substitute.For<IChangeReverser>());
     }
 
     [Fact]

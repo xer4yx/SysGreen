@@ -6,6 +6,9 @@
         xmlns:local="clr-namespace:SysGreen.App"
         mc:Ignorable="d"
         Title="SysGreen" Height="560" Width="900">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
     <DockPanel Margin="12">
         <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}"
                    FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
@@ -32,8 +35,45 @@
                          ScrollViewer.HorizontalScrollBarVisibility="Auto" />
             </TabItem>
             <TabItem Header="History">
-                <ListBox ItemsSource="{Binding History}" BorderThickness="0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding HistoryStatus}"
+                               Foreground="#2E7D32" Margin="2,0,0,6" />
+                    <TextBlock DockPanel.Dock="Top" Foreground="Gray" Margin="2"
+                               Text="No changes yet. Anything you disable appears here, fully reversible."
+                               Visibility="{Binding HistoryEmpty, Converter={StaticResource BoolToVis}}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding History}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="4"
+                                            Padding="8" Margin="0,0,0,8">
+                                        <DockPanel>
+                                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                                                <Button DockPanel.Dock="Right" Content="Undo batch"
+                                                        Command="{Binding UndoCommand}" Padding="8,2" />
+                                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+                                            </DockPanel>
+                                            <ItemsControl ItemsSource="{Binding Items}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <DockPanel Margin="8,2,0,2">
+                                                            <Button DockPanel.Dock="Right" MinWidth="84" Padding="8,1"
+                                                                    Content="{Binding ReverseLabel}"
+                                                                    Command="{Binding ReEnableCommand}" />
+                                                            <TextBlock Text="{Binding DisplayText}" FontFamily="Consolas"
+                                                                       VerticalAlignment="Center" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
             </TabItem>
         </TabControl>
     </DockPanel>
