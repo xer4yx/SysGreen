@@ -21,7 +21,7 @@ public interface IChangeRecordRepository
     IReadOnlyList<ChangeRecord> GetRecent(int limit = 200);
 }
 
-public sealed class UsageRepository : IUsageRepository
+public sealed class UsageRepository : IUsageRepository, ILaunchRecorder
 {
     private readonly IConnectionFactory _factory;
     public UsageRepository(IConnectionFactory factory) => _factory = factory;

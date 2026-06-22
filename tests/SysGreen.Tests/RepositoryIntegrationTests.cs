@@ -98,6 +98,17 @@ public sealed class RepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Launch_tracking_defaults_on_and_the_off_switch_persists()
+    {
+        var settings = new SettingsRepository(_factory);
+        Assert.True(settings.LaunchTrackingEnabled); // on by default (ADR-0012)
+
+        settings.SetLaunchTrackingEnabled(false);
+
+        Assert.False(new SettingsRepository(_factory).LaunchTrackingEnabled); // persists across instances
+    }
+
+    [Fact]
     public void An_override_with_no_purpose_round_trips_as_null()
     {
         new OverrideRepository(_factory).Set(new UserOverride("foo.exe", Purpose: null, NeverRecommend: true));

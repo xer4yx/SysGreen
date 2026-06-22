@@ -60,5 +60,11 @@ public sealed class DatabaseBootstrapper
             purpose                TEXT,
             never_recommend        INTEGER NOT NULL DEFAULT 0
         );
+
+        -- Local app settings (e.g. the launch-tracking off switch, ADR-0012).
+        CREATE TABLE IF NOT EXISTS setting (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
         """;
 }
