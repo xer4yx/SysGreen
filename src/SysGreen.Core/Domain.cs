@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace SysGreen.Core.Domain;
 
 /// <summary>The kind of a <see cref="ManageableItem"/>. See ADR-0001 / CONTEXT.md.</summary>
@@ -87,6 +89,7 @@ public sealed record AutostartEntry(
     public string? TargetExecutable { get; init; }
 
     /// <summary>True when changing this entry's state requires admin elevation.</summary>
+    [JsonIgnore]
     public bool RequiresElevation => Location is
         AutostartLocation.RegistryRunLocalMachine or
         AutostartLocation.StartupFolderCommon or

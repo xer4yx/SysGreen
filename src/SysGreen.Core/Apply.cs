@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using SysGreen.Core.Abstractions;
 using SysGreen.Core.ChangeLog;
 using SysGreen.Core.Domain;
@@ -14,8 +15,11 @@ public sealed record ApplyResult(
     IReadOnlyList<ChangeRecord> Records)
 {
     /// <summary>True when a required restore point could not be created, so nothing was applied.</summary>
+    [JsonIgnore]
     public bool Aborted => RestorePointRequired && !RestorePointCreated;
+    [JsonIgnore]
     public int SucceededCount => Records.Count(r => r.Success);
+    [JsonIgnore]
     public int FailedCount => Records.Count(r => !r.Success);
 }
 
