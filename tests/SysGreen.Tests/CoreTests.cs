@@ -99,6 +99,33 @@ public class ClassifierTests
     }
 
     [Fact]
+    public void Falls_back_to_heuristics_when_the_knowledge_base_misses()
+    {
+        var kb = new JsonKnowledgeBase(new KnowledgeBaseDocument(1, "test", []));
+
+        var c = new Classifier(kb).Classify(Entry(@"C:\Program Files (x86)\Google\Update\GoogleUpdate.exe"));
+
+        Assert.Equal(Purpose.Updater, c.Purpose);
+        Assert.Equal(SafetyRating.Safe, c.Safety);
+        Assert.Equal(ClassificationSource.Heuristic, c.Source);
+    }
+
+    [Fact]
+    public void Knowledge_base_wins_over_a_heuristic_match()
+    {
+        // GoogleUpdate would heuristically read as Updater/Safe; a curated entry must take precedence.
+        var entry = new KnowledgeEntry("Google LLC", "GoogleUpdate.exe", null, "Google Updater",
+            "Keeps Google software current", Purpose.Updater, SafetyRating.Caution, null, true);
+        var kb = new JsonKnowledgeBase(new KnowledgeBaseDocument(1, "test", [entry]));
+
+        var c = new Classifier(kb).Classify(
+            Entry(@"C:\Program Files (x86)\Google\Update\GoogleUpdate.exe", "Google LLC"));
+
+        Assert.Equal(ClassificationSource.KnowledgeBase, c.Source);
+        Assert.Equal(SafetyRating.Caution, c.Safety); // the curated value, not the heuristic's Safe
+    }
+
+    [Fact]
     public void Matches_knowledge_base_entry_by_executable_name()
     {
         var entry = new KnowledgeEntry(

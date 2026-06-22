@@ -26,10 +26,9 @@ public sealed class Classifier : IClassifier
             }
         }
 
-        // TODO: heuristic fallback from file metadata (signature/publisher, description,
-        // install path, updater patterns). Until then, unknowns are Caution and never
-        // auto-recommended (ADR-0002).
-        return Classification.UnknownCaution;
+        // Knowledge Base missed — infer from file metadata (signer, install path, updater patterns).
+        // Anything the heuristic can't place confidently stays Unknown/Caution (ADR-0002).
+        return HeuristicClassifier.Classify(entry) ?? Classification.UnknownCaution;
     }
 
     /// <summary>
