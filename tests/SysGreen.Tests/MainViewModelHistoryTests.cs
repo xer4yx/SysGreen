@@ -38,7 +38,7 @@ public class MainViewModelHistoryTests
         usage.GetAll().Returns(Array.Empty<UsageRecord>());
 
         return new MainViewModel(autostart, processes, classifier, engine, usage,
-            history, Substitute.For<IApplyService>(), reverser);
+            history, Substitute.For<IApplyService>(), reverser, Substitute.For<IOverrideStore>());
     }
 
     [Fact]

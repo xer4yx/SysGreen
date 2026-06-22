@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using SysGreen.Core.Domain;
 using SysGreen.Core.Recommendations;
 
@@ -7,6 +8,8 @@ namespace SysGreen.App.ViewModels;
 /// <summary>A single recommendation row the user can check/uncheck before Apply (ADR-0007).</summary>
 public sealed partial class RecommendationViewModel : ObservableObject
 {
+    private readonly Action<ManageableItem> _neverRecommend;
+
     public Recommendation Recommendation { get; }
     public ManageableItem Item => Recommendation.Item;
     public string DisplayText { get; }
@@ -15,9 +18,14 @@ public sealed partial class RecommendationViewModel : ObservableObject
     [ObservableProperty]
     private bool _isSelected = true;
 
-    public RecommendationViewModel(Recommendation recommendation)
+    public RecommendationViewModel(Recommendation recommendation, Action<ManageableItem> neverRecommend)
     {
         Recommendation = recommendation;
+        _neverRecommend = neverRecommend;
         DisplayText = $"{recommendation.Item.DisplayName}  —  {recommendation.Reason}";
     }
+
+    /// <summary>Records a user Override so this item is never recommended again (CONTEXT.md "Override").</summary>
+    [RelayCommand]
+    private void NeverRecommend() => _neverRecommend(Item);
 }

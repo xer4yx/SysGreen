@@ -18,7 +18,7 @@ public class MainViewModelApplyTests
             @"C:\x\Spotify.exe", null, AutostartState.Enabled);
 
     /// <summary>A view-model wired to fakes that surface one recommendation for the Spotify entry.</summary>
-    private static MainViewModel BuildVm(IApplyService apply)
+    private static MainViewModel BuildVm(IApplyService apply, IOverrideStore? overrides = null)
     {
         var autostart = Substitute.For<IAutostartProvider>();
         autostart.Enumerate().Returns(new[] { SpotifyEntry() });
@@ -47,7 +47,7 @@ public class MainViewModelApplyTests
         history.GetRecent(Arg.Any<int>()).Returns(Array.Empty<ChangeRecord>());
 
         return new MainViewModel(autostart, processes, classifier, engine, usage, history, apply,
-            Substitute.For<IChangeReverser>());
+            Substitute.For<IChangeReverser>(), overrides ?? Substitute.For<IOverrideStore>());
     }
 
     [Fact]
@@ -80,6 +80,19 @@ public class MainViewModelApplyTests
         // Not the terse "Disabled 0 of 1" — a tailored explanation that the user declined.
         Assert.Contains("declined", vm.ApplyStatus, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Disabled 0", vm.ApplyStatus);
+    }
+
+    [Fact]
+    public void Never_recommend_records_a_never_recommend_override_for_the_item()
+    {
+        var apply = Substitute.For<IApplyService>();
+        var overrides = Substitute.For<IOverrideStore>();
+        var vm = BuildVm(apply, overrides);
+
+        vm.Recommendations[0].NeverRecommendCommand.Execute(null);
+
+        overrides.Received(1).Set(Arg.Is<UserOverride>(o =>
+            o.NeverRecommend && o.ExecutableName.Contains("Spotify", StringComparison.OrdinalIgnoreCase)));
     }
 
     [Fact]

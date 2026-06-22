@@ -27,6 +27,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IChangeRecordRepository _history;
     private readonly IApplyService _apply;
     private readonly IChangeReverser _reverser;
+    private readonly IOverrideStore _overrides;
 
     [ObservableProperty]
     private string _summary = "Loading…";
@@ -52,7 +53,8 @@ public sealed partial class MainViewModel : ObservableObject
         IUsageRepository usage,
         IChangeRecordRepository history,
         IApplyService apply,
-        IChangeReverser reverser)
+        IChangeReverser reverser,
+        IOverrideStore overrides)
     {
         _autostart = autostart;
         _processes = processes;
@@ -62,6 +64,24 @@ public sealed partial class MainViewModel : ObservableObject
         _history = history;
         _apply = apply;
         _reverser = reverser;
+        _overrides = overrides;
+        Refresh();
+    }
+
+    /// <summary>
+    /// Records a "never recommend" Override for the item (top-precedence classification, CONTEXT.md),
+    /// then refreshes so it drops out of the recommendations.
+    /// </summary>
+    public void NeverRecommend(ManageableItem item)
+    {
+        if (item.Autostart is not { } entry) return;
+        if (ExecutableIdentity.PrimaryName(entry) is not { } name) return;
+
+        // Preserve any existing Purpose correction; just assert "never recommend".
+        var existing = _overrides.Get(name);
+        _overrides.Set(new UserOverride(name, existing?.Purpose, NeverRecommend: true));
+
+        ApplyStatus = $"Won't recommend {item.DisplayName} again.";
         Refresh();
     }
 
@@ -125,7 +145,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         Recommendations.Clear();
         foreach (var r in recommendations)
-            Recommendations.Add(new RecommendationViewModel(r));
+            Recommendations.Add(new RecommendationViewModel(r, NeverRecommend));
 
         AllItems.Clear();
         foreach (var i in items.OrderBy(i => i.Purpose).ThenBy(i => i.DisplayName))

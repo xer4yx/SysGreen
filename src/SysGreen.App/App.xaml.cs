@@ -108,10 +108,15 @@ public partial class App : Application
         // the same Apply pipeline — so an undo elevates / creates a restore point as needed (ADR-0005).
         services.AddSingleton<IChangeReverser>(sp => new ChangeReverser(sp.GetRequiredService<IApplyService>()));
 
-        // Knowledge + recommendations (ADR-0002 / ADR-0007 / ADR-0010)
+        // Knowledge + recommendations (ADR-0002 / ADR-0007 / ADR-0010). Classification precedence:
+        // user Override → Knowledge Base → heuristic → Unknown. The OverridingClassifier wraps the
+        // KB/heuristic Classifier so a user's "never recommend"/relabel always wins (CONTEXT.md).
         var kbPath = Path.Combine(AppContext.BaseDirectory, "knowledge-base.json");
         services.AddSingleton<IKnowledgeBase>(_ => JsonKnowledgeBase.LoadFromFile(kbPath));
-        services.AddSingleton<IClassifier, Classifier>();
+        services.AddSingleton<IOverrideStore>(sp => new OverrideRepository(sp.GetRequiredService<IConnectionFactory>()));
+        services.AddSingleton<Classifier>();
+        services.AddSingleton<IClassifier>(sp => new OverridingClassifier(
+            sp.GetRequiredService<Classifier>(), sp.GetRequiredService<IOverrideStore>()));
         services.AddSingleton<IRecommendationEngine>(_ => new RecommendationEngine());
 
         // UI

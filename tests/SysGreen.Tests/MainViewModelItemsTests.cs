@@ -37,7 +37,7 @@ public class MainViewModelItemsTests
         history.GetRecent(Arg.Any<int>()).Returns(Array.Empty<ChangeRecord>());
 
         return new MainViewModel(autostart, processes, classifier, engine, usage, history,
-            Substitute.For<IApplyService>(), Substitute.For<IChangeReverser>());
+            Substitute.For<IApplyService>(), Substitute.For<IChangeReverser>(), Substitute.For<IOverrideStore>());
     }
 
     [Fact]
