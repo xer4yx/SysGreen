@@ -22,7 +22,8 @@ public sealed class Classifier : IClassifier
             {
                 return new Classification(
                     hit.Purpose, hit.Safety, ClassificationSource.KnowledgeBase,
-                    hit.Description, hit.ProvidesPassiveValue);
+                    hit.Description, hit.ProvidesPassiveValue)
+                { TypicalRamBytes = hit.TypicalRamBytes };
             }
         }
 

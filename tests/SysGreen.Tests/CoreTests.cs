@@ -141,6 +141,28 @@ public class ClassifierTests
     }
 
     [Fact]
+    public void Surfaces_the_kb_typical_ram_for_the_estimate_chain()
+    {
+        var kbEntry = new KnowledgeEntry("Spotify AB", "Spotify.exe", null, "Spotify", "Media auto-launcher",
+            Purpose.Media, SafetyRating.Safe, 398458880, false);
+        var kb = new JsonKnowledgeBase(new KnowledgeBaseDocument(1, "test", [kbEntry]));
+
+        var c = new Classifier(kb).Classify(Entry(@"C:\Spotify\Spotify.exe", "Spotify AB"));
+
+        Assert.Equal(398458880L, c.TypicalRamBytes);
+    }
+
+    [Fact]
+    public void Has_no_typical_ram_when_not_matched_in_the_kb()
+    {
+        var kb = new JsonKnowledgeBase(new KnowledgeBaseDocument(1, "test", []));
+
+        var c = new Classifier(kb).Classify(Entry(@"C:\x\mystery.exe"));
+
+        Assert.Null(c.TypicalRamBytes);
+    }
+
+    [Fact]
     public void Matches_via_process_start_target_when_launcher_is_an_updater()
     {
         // Discord's Run entry launches Update.exe (signed by Discord Inc.) which starts Discord.exe.

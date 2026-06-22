@@ -66,7 +66,7 @@ public sealed class RecommendationEngine : IRecommendationEngine
     private static string BuildReason(
         ManageableItem item, RecommendationSource source, UsageRecord? record, DateTime nowUtc)
     {
-        string ram = item.RamEstimateBytes is { } b ? $" · ≈{FormatRam(b)} at startup" : "";
+        string ram = item.RamEstimateBytes is { } b ? $" · ≈{RamEstimate.Format(b)} at startup" : "";
         return source switch
         {
             RecommendationSource.Both =>
@@ -90,7 +90,4 @@ public sealed class RecommendationEngine : IRecommendationEngine
     };
 
     private static string ExecutableFileName(string path) => System.IO.Path.GetFileName(path);
-
-    private static string FormatRam(long bytes) =>
-        bytes >= 1L << 30 ? $"{bytes / (double)(1L << 30):0.#} GB" : $"{bytes / (1L << 20)} MB";
 }

@@ -23,7 +23,8 @@ public class MainViewModelItemsTests
 
         var classifier = Substitute.For<IClassifier>();
         classifier.Classify(Arg.Any<AutostartEntry>()).Returns(
-            new Classification(Purpose.Media, SafetyRating.Safe, ClassificationSource.KnowledgeBase, "Media", false));
+            new Classification(Purpose.Media, SafetyRating.Safe, ClassificationSource.KnowledgeBase, "Media", false)
+            { TypicalRamBytes = 398458880 });
 
         var engine = Substitute.For<IRecommendationEngine>();
         engine.Recommend(Arg.Any<IReadOnlyList<ManageableItem>>(),
@@ -48,6 +49,17 @@ public class MainViewModelItemsTests
 
         var line = Assert.Single(vm.AllItems, l => l.Contains("Old"));
         Assert.Contains("Disabled", line);
+    }
+
+    [Fact]
+    public void All_items_shows_the_ram_estimate_from_the_kb_when_not_running()
+    {
+        // Not running, so the live value is null; the chain falls back to the KB typical (≈380 MB).
+        var vm = BuildVm(new AutostartEntry("HKCU:Big", "Big", ItemKind.StartupApp,
+            AutostartLocation.RegistryRunCurrentUser, @"C:\x\Big.exe", null, AutostartState.Enabled));
+
+        var line = Assert.Single(vm.AllItems, l => l.Contains("Big"));
+        Assert.Contains("380 MB", line);
     }
 
     [Fact]

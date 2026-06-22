@@ -25,6 +25,12 @@ public sealed record Classification(
 {
     public static readonly Classification UnknownCaution =
         new(Purpose.Unknown, SafetyRating.Caution, ClassificationSource.Unknown, null, false);
+
+    /// <summary>
+    /// The KB's coarse typical Private Working Set, surfaced for the RAM-estimate fallback chain
+    /// (CONTEXT.md "RAM Estimate"). Null unless a Knowledge Base entry matched.
+    /// </summary>
+    public long? TypicalRamBytes { get; init; }
 }
 
 /// <summary>

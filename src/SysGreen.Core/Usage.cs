@@ -30,12 +30,27 @@ public enum RamEstimateSource
 
 /// <summary>
 /// The RAM figure shown per item, always framed as "≈ uses", never "saved".
-/// Measured as Private Working Set.
+/// Measured as Private Working Set. Resolved by a degradation chain (CONTEXT.md / Q12).
 /// </summary>
 public sealed record RamEstimate(long? Bytes, RamEstimateSource Source)
 {
     public static readonly RamEstimate Unknown = new(null, RamEstimateSource.Unknown);
     public bool IsKnown => Bytes is > 0;
+
+    /// <summary>
+    /// Picks the best available figure in priority order: the live Private Working Set if running,
+    /// else a historical median (Tray Agent samples), else the KB's coarse typical, else Unknown.
+    /// Each source carries its provenance so the UI can show how sure the number is.
+    /// </summary>
+    public static RamEstimate Resolve(long? live, long? historicalMedian, long? knowledgeBaseTypical) =>
+        live is > 0 ? new(live, RamEstimateSource.Live)
+        : historicalMedian is > 0 ? new(historicalMedian, RamEstimateSource.Historical)
+        : knowledgeBaseTypical is > 0 ? new(knowledgeBaseTypical, RamEstimateSource.KnowledgeBase)
+        : Unknown;
+
+    /// <summary>Coarse, human-readable size — whole MB, or one decimal of GB at/above 1 GB.</summary>
+    public static string Format(long bytes) =>
+        bytes >= 1L << 30 ? $"{bytes / (double)(1L << 30):0.#} GB" : $"{bytes / (1L << 20)} MB";
 }
 
 /// <summary>Reads existing Windows launch history to seed the habit engine (UserAssist primary).</summary>
