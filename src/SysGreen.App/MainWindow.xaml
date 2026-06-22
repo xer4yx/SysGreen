@@ -23,8 +23,13 @@
                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayText}"
-                                          Margin="2" />
+                                <DockPanel Margin="2">
+                                    <Button DockPanel.Dock="Right" Content="Never recommend" Padding="8,1"
+                                            Command="{Binding NeverRecommendCommand}"
+                                            ToolTip="Always respect this — never suggest disabling it again." />
+                                    <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding DisplayText}"
+                                              VerticalAlignment="Center" />
+                                </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

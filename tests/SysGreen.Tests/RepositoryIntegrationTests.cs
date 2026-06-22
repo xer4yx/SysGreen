@@ -1,5 +1,6 @@
 using SysGreen.Core.ChangeLog;
 using SysGreen.Core.Domain;
+using SysGreen.Core.Knowledge;
 using SysGreen.Data;
 
 namespace SysGreen.Tests;
@@ -79,5 +80,31 @@ public sealed class RepositoryIntegrationTests : IDisposable
         Assert.Equal("batch-1", record.BatchId);
         Assert.Equal(AutostartLocation.RegistryRunLocalMachine, record.Location);
         Assert.Equal(@"\Updater", record.MechanismKey);
+    }
+
+    [Fact]
+    public void Overrides_round_trip_and_persist_across_instances()
+    {
+        new OverrideRepository(_factory).Set(new UserOverride("Spotify.exe", Purpose.Media, NeverRecommend: true));
+
+        // A fresh repo reloads from the DB; the key matches case-insensitively without the extension.
+        var ov = new OverrideRepository(_factory).Get("spotify");
+        Assert.NotNull(ov);
+        Assert.Equal(Purpose.Media, ov!.Purpose);
+        Assert.True(ov.NeverRecommend);
+
+        new OverrideRepository(_factory).Remove("SPOTIFY.exe");
+        Assert.Null(new OverrideRepository(_factory).Get("Spotify.exe"));
+    }
+
+    [Fact]
+    public void An_override_with_no_purpose_round_trips_as_null()
+    {
+        new OverrideRepository(_factory).Set(new UserOverride("foo.exe", Purpose: null, NeverRecommend: true));
+
+        var ov = new OverrideRepository(_factory).Get("foo.exe");
+        Assert.NotNull(ov);
+        Assert.Null(ov!.Purpose);
+        Assert.True(ov.NeverRecommend);
     }
 }
