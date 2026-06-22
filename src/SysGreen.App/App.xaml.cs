@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,8 +34,27 @@ public partial class App : Application
         // On first run, seed the habit store from existing Windows launch history (ADR-0008).
         SeedHabitHistory(_services);
 
+        // Start the Tray Agent so launches are tracked going forward (ADR-0014); it self-registers
+        // its own autostart for subsequent logons.
+        EnsureTrayAgentRunning(_services);
+
         var window = _services.GetRequiredService<MainWindow>();
         window.Show();
+    }
+
+    /// <summary>
+    /// Launches the resident Tray Agent if launch tracking is on and it isn't already running
+    /// (ADR-0012/0014). The Agent itself keeps SysGreen's autostart entry in step for later logons.
+    /// </summary>
+    private static void EnsureTrayAgentRunning(IServiceProvider services)
+    {
+        if (!services.GetRequiredService<Core.Usage.ITrackingSettings>().LaunchTrackingEnabled) return;
+        if (Process.GetProcessesByName("SysGreen.Agent").Length > 0) return;
+
+        var agent = Path.Combine(AppContext.BaseDirectory, "SysGreen.Agent.exe");
+        if (!File.Exists(agent)) return;
+        try { Process.Start(new ProcessStartInfo(agent) { UseShellExecute = true }); }
+        catch { /* best effort — the App still works without the Agent (static-only recommendations) */ }
     }
 
     private static void SeedHabitHistory(IServiceProvider services)
@@ -64,6 +84,8 @@ public partial class App : Application
         services.AddSingleton<ChangeRecordRepository>();
         services.AddSingleton<IChangeRecordRepository>(sp => sp.GetRequiredService<ChangeRecordRepository>());
         services.AddSingleton<IChangeLog>(sp => sp.GetRequiredService<ChangeRecordRepository>());
+        services.AddSingleton<Core.Usage.ITrackingSettings>(
+            sp => new SettingsRepository(sp.GetRequiredService<IConnectionFactory>()));
 
         // Platform providers (ADR-0008 / ADR-0011)
         services.AddSingleton<IExecutablePublisherReader, AuthenticodePublisherReader>();

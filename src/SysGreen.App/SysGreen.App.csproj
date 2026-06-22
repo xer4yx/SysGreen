@@ -7,6 +7,8 @@
     <!-- Build the elevated Helper first, but don't link it; it's a separate exe launched at runtime
          (ADR-0004). The CopyElevatedHelper target below co-locates it next to the App. -->
     <ProjectReference Include="..\SysGreen.Helper\SysGreen.Helper.csproj" ReferenceOutputAssembly="false" />
+    <!-- Same for the resident Tray Agent (ADR-0014): built + co-located, launched at runtime. -->
+    <ProjectReference Include="..\SysGreen.Agent\SysGreen.Agent.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <!-- SysGreen.Helper.exe must sit beside SysGreen.App.exe so HelperElevatedApplyClient can find it
@@ -17,6 +19,17 @@
     </ItemGroup>
     <Copy SourceFiles="@(_HelperOutput)"
           DestinationFiles="@(_HelperOutput->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- SysGreen.Agent.exe sits beside SysGreen.App.exe so the App can launch it (ADR-0014) and the
+       Agent can find the App for "Open SysGreen"; production installs co-locate them the same way. -->
+  <Target Name="CopyTrayAgent" AfterTargets="Build">
+    <ItemGroup>
+      <_AgentOutput Include="$(MSBuildThisFileDirectory)..\SysGreen.Agent\bin\$(Configuration)\$(TargetFramework)\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AgentOutput)"
+          DestinationFiles="@(_AgentOutput->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
   </Target>
 
