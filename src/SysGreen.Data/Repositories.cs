@@ -1,6 +1,7 @@
 using Dapper;
 using SysGreen.Core.Abstractions;
 using SysGreen.Core.ChangeLog;
+using SysGreen.Core.Domain;
 using SysGreen.Core.Usage;
 
 namespace SysGreen.Data;
@@ -91,16 +92,17 @@ public sealed class ChangeRecordRepository : IChangeRecordRepository, IChangeLog
             """
             INSERT INTO change_record
                 (id, item_id, item_name, action, prior_state, new_state,
-                 mechanism, timestamp_utc, success, error)
+                 mechanism, timestamp_utc, success, error, batch_id, location)
             VALUES
                 (@Id, @ItemId, @ItemName, @Action, @PriorState, @NewState,
-                 @Mechanism, @TimestampUtc, @Success, @Error);
+                 @Mechanism, @TimestampUtc, @Success, @Error, @BatchId, @Location);
             """,
             new
             {
                 r.Id, r.ItemId, r.ItemName, Action = r.Action.ToString(),
                 r.PriorState, r.NewState, r.Mechanism, r.TimestampUtc,
                 Success = r.Success ? 1 : 0, r.Error,
+                r.BatchId, Location = r.Location.ToString(),
             });
     }
 
@@ -111,7 +113,7 @@ public sealed class ChangeRecordRepository : IChangeRecordRepository, IChangeLog
         cmd.CommandText =
             """
             SELECT id, item_id, item_name, action, prior_state, new_state, mechanism,
-                   timestamp_utc, success, error
+                   timestamp_utc, success, error, batch_id, location
             FROM change_record ORDER BY timestamp_utc DESC LIMIT $limit;
             """;
         var limitParam = cmd.CreateParameter();
@@ -129,7 +131,13 @@ public sealed class ChangeRecordRepository : IChangeRecordRepository, IChangeLog
                 reader.GetString(4), reader.GetString(5), reader.GetString(6),
                 reader.GetDateTime(7),
                 reader.GetInt64(8) != 0,
-                reader.IsDBNull(9) ? null : reader.GetString(9)));
+                reader.IsDBNull(9) ? null : reader.GetString(9))
+            {
+                BatchId = reader.IsDBNull(10) ? "" : reader.GetString(10),
+                Location = reader.IsDBNull(11)
+                    ? AutostartLocation.Unknown
+                    : Enum.Parse<AutostartLocation>(reader.GetString(11)),
+            });
         }
         return records;
     }

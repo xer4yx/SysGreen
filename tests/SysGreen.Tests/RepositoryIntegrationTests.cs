@@ -1,4 +1,5 @@
 using SysGreen.Core.ChangeLog;
+using SysGreen.Core.Domain;
 using SysGreen.Data;
 
 namespace SysGreen.Tests;
@@ -63,5 +64,19 @@ public sealed class RepositoryIntegrationTests : IDisposable
         Assert.Equal(ChangeAction.Disable, record.Action);
         Assert.True(record.Success);
         Assert.Null(record.Error);
+    }
+
+    [Fact]
+    public void Change_records_round_trip_their_batch_id_and_location_for_undo()
+    {
+        var repo = new ChangeRecordRepository(_factory);
+        repo.Add(new ChangeRecord("id2", "HKLM:Updater", "Updater", ChangeAction.Disable,
+            "Enabled", "Disabled", "StartupApproved",
+            new DateTime(2026, 6, 22, 9, 0, 0, DateTimeKind.Utc), true, null)
+            { BatchId = "batch-1", Location = AutostartLocation.RegistryRunLocalMachine });
+
+        var record = Assert.Single(repo.GetRecent());
+        Assert.Equal("batch-1", record.BatchId);
+        Assert.Equal(AutostartLocation.RegistryRunLocalMachine, record.Location);
     }
 }
