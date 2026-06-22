@@ -67,18 +67,20 @@ public partial class App : Application
 
         // Platform providers (ADR-0008 / ADR-0011)
         services.AddSingleton<IExecutablePublisherReader, AuthenticodePublisherReader>();
-        // Autostart enumeration (ADR-0005/0008): Run keys + the per-user/common Startup folders,
-        // combined, then decorated so each entry's real enable/disable state is read back from the
-        // Windows StartupApproved flags.
+        // Autostart enumeration (ADR-0005/0008): Run keys + the per-user/common Startup folders +
+        // logon scheduled tasks, combined, then decorated so each Run/folder entry's real enable/
+        // disable state is read back from the Windows StartupApproved flags (tasks carry their own).
         services.AddSingleton<RegistryAutostartProvider>();
         services.AddSingleton<StartupFolderAutostartProvider>();
+        services.AddSingleton<ScheduledTaskProvider>();
+        services.AddSingleton<IScheduledTaskProvider>(sp => sp.GetRequiredService<ScheduledTaskProvider>());
         services.AddSingleton<IAutostartProvider>(sp => new StartupApprovedAutostartProvider(
             new CompositeAutostartProvider(
                 sp.GetRequiredService<RegistryAutostartProvider>(),
-                sp.GetRequiredService<StartupFolderAutostartProvider>()),
+                sp.GetRequiredService<StartupFolderAutostartProvider>(),
+                sp.GetRequiredService<ScheduledTaskProvider>()),
             sp.GetRequiredService<IStartupApprovedStore>()));
         services.AddSingleton<IProcessProvider, ProcessProvider>();
-        services.AddSingleton<IScheduledTaskProvider, ScheduledTaskProvider>();
         services.AddSingleton<IWindowsServiceProvider, WindowsServiceProvider>();
         services.AddSingleton<Core.Usage.IUsageHistoryProvider, UserAssistUsageHistoryProvider>();
         services.AddSingleton<IRestorePointApi, WmiRestorePointApi>();
