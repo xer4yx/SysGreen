@@ -68,10 +68,12 @@ public sealed class ApplyService : IApplyService
                 return new ApplyResult(true, false, []);
         }
 
+        // One id per Apply so the History view can offer a per-batch Undo (ADR-0005).
+        var batchId = Guid.NewGuid().ToString("n");
         var records = new List<ChangeRecord>(changes.Count);
         foreach (var change in changes)
         {
-            var record = ApplyOne(change);
+            var record = ApplyOne(change) with { BatchId = batchId };
             _changeLog.Record(record);
             records.Add(record);
         }
@@ -94,7 +96,8 @@ public sealed class ApplyService : IApplyService
         {
             return new ChangeRecord(
                 Guid.NewGuid().ToString("n"), change.Entry.Id, change.Entry.DisplayName,
-                change.Action, "Unknown", "Unknown", "StartupApproved", _clock.UtcNow, false, ex.Message);
+                change.Action, "Unknown", "Unknown", "StartupApproved", _clock.UtcNow, false, ex.Message)
+            { Location = change.Entry.Location };
         }
     }
 }

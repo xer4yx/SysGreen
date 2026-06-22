@@ -93,6 +93,10 @@ public partial class App : Application
             sp.GetRequiredService<ApplyService>(),
             sp.GetRequiredService<IElevatedApplyClient>()));
 
+        // Undo: re-enable a single change or undo a whole batch by routing the inverse back through
+        // the same Apply pipeline — so an undo elevates / creates a restore point as needed (ADR-0005).
+        services.AddSingleton<IChangeReverser>(sp => new ChangeReverser(sp.GetRequiredService<IApplyService>()));
+
         // Knowledge + recommendations (ADR-0002 / ADR-0007 / ADR-0010)
         var kbPath = Path.Combine(AppContext.BaseDirectory, "knowledge-base.json");
         services.AddSingleton<IKnowledgeBase>(_ => JsonKnowledgeBase.LoadFromFile(kbPath));

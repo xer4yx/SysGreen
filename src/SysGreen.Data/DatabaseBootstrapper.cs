@@ -13,6 +13,18 @@ public sealed class DatabaseBootstrapper
     {
         using var connection = _factory.OpenConnection();
         connection.Execute(Schema);
+        // Migrate databases created before the History/Undo slice (ADR-0005): these columns
+        // make a Change Record self-sufficient for reversal. ADD COLUMN is the SQLite idiom.
+        AddColumnIfMissing(connection, "change_record", "batch_id", "TEXT");
+        AddColumnIfMissing(connection, "change_record", "location", "TEXT");
+    }
+
+    private static void AddColumnIfMissing(
+        System.Data.IDbConnection connection, string table, string column, string type)
+    {
+        var columns = connection.Query<string>($"SELECT name FROM pragma_table_info('{table}');");
+        if (!columns.Contains(column))
+            connection.Execute($"ALTER TABLE {table} ADD COLUMN {column} {type};");
     }
 
     private const string Schema = """
@@ -32,7 +44,9 @@ public sealed class DatabaseBootstrapper
             mechanism     TEXT NOT NULL,
             timestamp_utc TEXT NOT NULL,
             success       INTEGER NOT NULL,
-            error         TEXT
+            error         TEXT,
+            batch_id      TEXT,
+            location      TEXT
         );
 
         CREATE INDEX IF NOT EXISTS ix_change_record_time
