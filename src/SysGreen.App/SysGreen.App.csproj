@@ -4,7 +4,21 @@
     <ProjectReference Include="..\SysGreen.Core\SysGreen.Core.csproj" />
     <ProjectReference Include="..\SysGreen.Platform\SysGreen.Platform.csproj" />
     <ProjectReference Include="..\SysGreen.Data\SysGreen.Data.csproj" />
+    <!-- Build the elevated Helper first, but don't link it; it's a separate exe launched at runtime
+         (ADR-0004). The CopyElevatedHelper target below co-locates it next to the App. -->
+    <ProjectReference Include="..\SysGreen.Helper\SysGreen.Helper.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <!-- SysGreen.Helper.exe must sit beside SysGreen.App.exe so HelperElevatedApplyClient can find it
+       (production installs co-locate them; this mirrors that for dev/test builds). -->
+  <Target Name="CopyElevatedHelper" AfterTargets="Build">
+    <ItemGroup>
+      <_HelperOutput Include="$(MSBuildThisFileDirectory)..\SysGreen.Helper\bin\$(Configuration)\$(TargetFramework)\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_HelperOutput)"
+          DestinationFiles="@(_HelperOutput->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

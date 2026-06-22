@@ -1,35 +1,28 @@
-using SysGreen.Core.Abstractions;
+using SysGreen.Core;
+using SysGreen.Core.Apply;
+using SysGreen.Core.Startup;
+using SysGreen.Data;
+using SysGreen.Platform;
 
 // SysGreen.Helper — the short-lived, admin-elevated process (ADR-0004).
-// The non-elevated UI spawns it via ShellExecute "runas" with a temp job-file path when a
-// batch includes admin-only actions (HKLM autostart, services, some scheduled tasks).
-// The Helper creates the mandatory restore point (ADR-0005), executes the batch via
-// IItemController, writes Change Records to the shared SQLite DB (ADR-0011), and exits.
-//
-// This scaffold validates the entry contract; batch execution is wired in a later milestone.
+// The non-elevated App launches it via ShellExecute "runas" with a temp job-file path when an
+// Apply batch includes admin-only actions (HKLM autostart, common Startup folder, services). It
+// applies the batch through the same ApplyService the App uses, which creates the mandatory
+// restore point (ADR-0005) and persists Change Records to the shared SQLite DB; it then writes a
+// result file and exits with a status code (ADR-0011). No long-lived IPC; nothing stays resident.
 
-if (args.Length == 0)
+return new HelperRunner(BuildApplyService).Run(args);
+
+// Composed per job so the Helper writes to the *invoking user's* database (passed in the job),
+// not whichever account approved the elevation.
+static IApplyService BuildApplyService(string databasePath)
 {
-    Console.Error.WriteLine("SysGreen.Helper expects a job-file path argument.");
-    return ExitCodes.NoJobFile;
-}
-
-string jobFile = args[0];
-if (!File.Exists(jobFile))
-{
-    Console.Error.WriteLine($"Job file not found: {jobFile}");
-    return ExitCodes.JobFileNotFound;
-}
-
-Console.WriteLine($"SysGreen.Helper: would execute batch from '{jobFile}'.");
-// TODO: deserialize the job, create a restore point, run IItemController actions,
-// persist Change Records, and return a per-item result summary (ADR-0005, ADR-0013).
-_ = typeof(IItemController); // anchor the Core reference until the batch runner lands.
-return ExitCodes.Success;
-
-static class ExitCodes
-{
-    public const int Success = 0;
-    public const int NoJobFile = 1;
-    public const int JobFileNotFound = 2;
+    var factory = new SqliteConnectionFactory(databasePath);
+    new DatabaseBootstrapper(factory).EnsureCreated(); // idempotent; the App normally created it first
+    var clock = new SystemClock();
+    var controller = new StartupApprovedItemController(
+        new StartupApprovedRegistryStore(), new ProcessTerminator(), clock);
+    var restorePoints = new RestorePointService(new WmiRestorePointApi());
+    var changeLog = new ChangeRecordRepository(factory);
+    return new ApplyService(controller, changeLog, restorePoints, clock);
 }

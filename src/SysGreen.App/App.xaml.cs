@@ -80,7 +80,18 @@ public partial class App : Application
         services.AddSingleton<IProcessTerminator, ProcessTerminator>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IItemController, StartupApprovedItemController>();
-        services.AddSingleton<IApplyService, ApplyService>();
+
+        // Apply routing (ADR-0004 / ADR-0011): per-user batches run in-process via ApplyService;
+        // any batch with an admin-only item is delegated whole to the elevated Helper (one UAC
+        // prompt), which creates the restore point and persists Change Records to the shared DB.
+        services.AddSingleton<ApplyService>();
+        services.AddSingleton<IElevatedApplyClient>(sp => new HelperElevatedApplyClient(
+            Path.Combine(AppContext.BaseDirectory, "SysGreen.Helper.exe"),
+            SqliteConnectionFactory.DefaultDatabasePath(),
+            sp.GetRequiredService<IClock>()));
+        services.AddSingleton<IApplyService>(sp => new RoutingApplyService(
+            sp.GetRequiredService<ApplyService>(),
+            sp.GetRequiredService<IElevatedApplyClient>()));
 
         // Knowledge + recommendations (ADR-0002 / ADR-0007 / ADR-0010)
         var kbPath = Path.Combine(AppContext.BaseDirectory, "knowledge-base.json");
