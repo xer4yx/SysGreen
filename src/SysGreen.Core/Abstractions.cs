@@ -67,6 +67,17 @@ public interface IProcessTerminator
 }
 
 /// <summary>
+/// Reads/writes a logon scheduled task's enabled state — the non-destructive disable mechanism for
+/// the ScheduledTask kind (ADR-0005), keyed by the task's full path. Humble Win32 seam; the decision
+/// logic lives in the tested <see cref="Startup.ScheduledTaskItemController"/>.
+/// </summary>
+public interface IScheduledTaskStore
+{
+    bool IsEnabled(string taskPath);
+    void SetEnabled(string taskPath, bool enabled);
+}
+
+/// <summary>
 /// Reads the Authenticode publisher (signer common name) of an executable, or null if it's
 /// unsigned/unreadable. Powers publisher-based Knowledge Base matching (ADR-0010).
 /// </summary>

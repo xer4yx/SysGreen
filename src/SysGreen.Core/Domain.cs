@@ -107,6 +107,7 @@ public sealed record AutostartEntry(
     public bool RequiresElevation => Location is
         AutostartLocation.RegistryRunLocalMachine or
         AutostartLocation.StartupFolderCommon or
+        AutostartLocation.ScheduledTask or
         AutostartLocation.Service;
 }
 
