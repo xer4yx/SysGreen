@@ -8,6 +8,7 @@ using SysGreen.Core.ChangeLog;
 using SysGreen.Core.Domain;
 using SysGreen.Core.Knowledge;
 using SysGreen.Core.Recommendations;
+using SysGreen.Core.Usage;
 using SysGreen.Data;
 
 namespace SysGreen.App.ViewModels;
@@ -149,8 +150,11 @@ public sealed partial class MainViewModel : ObservableObject
 
         AllItems.Clear();
         foreach (var i in items.OrderBy(i => i.Purpose).ThenBy(i => i.DisplayName))
+        {
+            var ram = i.RamEstimateBytes is { } b ? $"≈{RamEstimate.Format(b)}" : "≈ ?";
             AllItems.Add($"{i.DisplayName,-32} [{i.Purpose}/{i.Safety}]  {i.Autostart?.State,-8}  " +
-                         $"{(i.IsRunning ? "running" : "stopped")}  ({i.Autostart?.Location})");
+                         $"{ram,-9} {(i.IsRunning ? "running" : "stopped")}  ({i.Autostart?.Location})");
+        }
 
         History.Clear();
         var recent = _history.GetRecent();
@@ -188,10 +192,13 @@ public sealed partial class MainViewModel : ObservableObject
         {
             var classification = _classifier.Classify(entry);
             var running = FindRunningProcess(entry, processes);
+            // RAM estimate chain (CONTEXT.md / Q12): live Private Working Set → historical median
+            // (the Tray Agent isn't sampling yet, so null) → KB typical → Unknown.
+            var ram = RamEstimate.Resolve(
+                running?.PrivateWorkingSetBytes, historicalMedian: null, classification.TypicalRamBytes).Bytes;
             items.Add(new ManageableItem(
                 entry.Id, entry.DisplayName, entry.Kind, entry, running,
-                classification.Purpose, classification.Safety,
-                running?.PrivateWorkingSetBytes));
+                classification.Purpose, classification.Safety, ram));
         }
         return items;
     }
