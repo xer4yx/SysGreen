@@ -40,6 +40,13 @@ public sealed record ChangeRecord(
     /// </summary>
     public AutostartLocation Location { get; init; } = AutostartLocation.Unknown;
 
+    /// <summary>
+    /// The key the disable mechanism used to address the item (the StartupApproved value name /
+    /// shortcut file name, or the scheduled-task path). Captured so a reversal re-targets the same
+    /// key rather than guessing from the display name. Empty for non-autostart records.
+    /// </summary>
+    public string MechanismKey { get; init; } = "";
+
     /// <summary>True when this change can be undone — i.e. a Disable/Enable, not a transient EndTask.</summary>
     [JsonIgnore]
     public bool IsReversible => Action is ChangeAction.Disable or ChangeAction.Enable;

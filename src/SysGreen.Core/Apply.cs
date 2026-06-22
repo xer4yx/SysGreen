@@ -97,7 +97,7 @@ public sealed class ApplyService : IApplyService
             return new ChangeRecord(
                 Guid.NewGuid().ToString("n"), change.Entry.Id, change.Entry.DisplayName,
                 change.Action, "Unknown", "Unknown", "StartupApproved", _clock.UtcNow, false, ex.Message)
-            { Location = change.Entry.Location };
+            { Location = change.Entry.Location, MechanismKey = change.Entry.MechanismKey };
         }
     }
 }

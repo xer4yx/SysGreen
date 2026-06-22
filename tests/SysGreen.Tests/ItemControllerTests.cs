@@ -46,12 +46,40 @@ public class ItemControllerTests
     }
 
     [Fact]
+    public void Disable_writes_the_flag_under_the_startup_approved_value_name()
+    {
+        var store = new FakeStore();
+        var folder = new AutostartEntry("Folder:Spotify", "Spotify", ItemKind.StartupApp,
+            AutostartLocation.StartupFolderCurrentUser, @"C:\x\Spotify.exe", null, AutostartState.Enabled)
+            { MechanismKey = "Spotify.lnk" };
+
+        Controller(store).Disable(folder);
+
+        // Keyed by the shortcut file name Windows uses, not the friendly display name.
+        Assert.Null(store.ReadFlag(AutostartLocation.StartupFolderCurrentUser, "Spotify"));
+        Assert.False(StartupApprovedFlag.IsEnabled(
+            store.ReadFlag(AutostartLocation.StartupFolderCurrentUser, "Spotify.lnk")!));
+    }
+
+    [Fact]
     public void Disable_records_the_entrys_location_so_the_change_can_be_reversed_precisely()
     {
         var record = Controller(new FakeStore()).Disable(Entry());
 
         Assert.Equal(HkcuRun, record.Location);
         Assert.True(record.IsReversible);
+    }
+
+    [Fact]
+    public void Disable_records_the_mechanism_key_so_a_reversal_re_targets_the_same_item()
+    {
+        var folder = new AutostartEntry("Folder:Spotify", "Spotify", ItemKind.StartupApp,
+            AutostartLocation.StartupFolderCurrentUser, @"C:\x\Spotify.exe", null, AutostartState.Enabled)
+            { MechanismKey = "Spotify.lnk" };
+
+        var record = Controller(new FakeStore()).Disable(folder);
+
+        Assert.Equal("Spotify.lnk", record.MechanismKey);
     }
 
     [Fact]

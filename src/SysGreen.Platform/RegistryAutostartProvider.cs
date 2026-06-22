@@ -7,7 +7,8 @@ namespace SysGreen.Platform;
 /// <summary>
 /// Enumerates Autostart Entries from the HKCU/HKLM Run keys, populating each entry's publisher
 /// from its executable's Authenticode signature so the Knowledge Base can match it (ADR-0010).
-/// (TODO: also read the Startup folders and reflect the StartupApproved disable flags as state.)
+/// Startup-folder entries come from <see cref="StartupFolderAutostartProvider"/>; the real
+/// enable/disable state is layered on by the StartupApproved decorator, so entries are Enabled here.
 /// </summary>
 public sealed class RegistryAutostartProvider : IAutostartProvider
 {
@@ -42,7 +43,7 @@ public sealed class RegistryAutostartProvider : IAutostartProvider
                 Location: location,
                 ExecutablePath: launcher,
                 Publisher: launcher is null ? null : _publisherReader.ReadPublisher(launcher),
-                State: AutostartState.Enabled) // TODO: consult StartupApproved flags
+                State: AutostartState.Enabled) // the StartupApproved decorator resolves the real state
             {
                 TargetExecutable = target,
             });

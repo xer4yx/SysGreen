@@ -5,12 +5,7 @@ namespace SysGreen.Platform;
 
 // Scaffolded seams — real implementations land in later milestones. Each is isolated
 // behind a Core interface (ADR-0011) so it can be built and tested independently.
-
-/// <summary>TODO: enumerate logon-triggered tasks via the TaskScheduler NuGet.</summary>
-public sealed class ScheduledTaskProvider : IScheduledTaskProvider
-{
-    public IReadOnlyList<AutostartEntry> Enumerate() => [];
-}
+// ScheduledTaskProvider is now a real implementation in its own file.
 
 /// <summary>TODO (deferred tier, ADR-0001): enumerate services via ServiceController + registry Start type.</summary>
 public sealed class WindowsServiceProvider : IWindowsServiceProvider

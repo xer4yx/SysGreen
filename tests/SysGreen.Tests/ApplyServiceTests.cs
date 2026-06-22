@@ -105,8 +105,9 @@ public class ApplyServiceTests
         Assert.Equal(1, result.SucceededCount);
         Assert.Equal(1, result.FailedCount);
         Assert.Equal(2, log.Records.Count); // both outcomes are persisted
+        // location + mechanism key captured even on failure, so the record stays self-describing
         Assert.Contains(log.Records, r => !r.Success && r.ItemName == "Discord"
-            && r.Location == AutostartLocation.RegistryRunCurrentUser); // location captured even on failure
+            && r.Location == AutostartLocation.RegistryRunCurrentUser && r.MechanismKey == "Discord");
     }
 
     private sealed class FakeController : IItemController

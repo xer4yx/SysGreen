@@ -17,6 +17,7 @@ public sealed class DatabaseBootstrapper
         // make a Change Record self-sufficient for reversal. ADD COLUMN is the SQLite idiom.
         AddColumnIfMissing(connection, "change_record", "batch_id", "TEXT");
         AddColumnIfMissing(connection, "change_record", "location", "TEXT");
+        AddColumnIfMissing(connection, "change_record", "mechanism_key", "TEXT");
     }
 
     private static void AddColumnIfMissing(
@@ -46,7 +47,8 @@ public sealed class DatabaseBootstrapper
             success       INTEGER NOT NULL,
             error         TEXT,
             batch_id      TEXT,
-            location      TEXT
+            location      TEXT,
+            mechanism_key TEXT
         );
 
         CREATE INDEX IF NOT EXISTS ix_change_record_time

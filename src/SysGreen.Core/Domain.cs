@@ -88,11 +88,26 @@ public sealed record AutostartEntry(
     /// </summary>
     public string? TargetExecutable { get; init; }
 
+    private readonly string? _mechanismKey;
+
+    /// <summary>
+    /// The key the disable mechanism uses to address this entry: the Run value name (or shortcut
+    /// file name like "Spotify.lnk") under the StartupApproved key, or the full task path for a
+    /// scheduled task. Captured on each Change Record so a reversal targets the same key.
+    /// Defaults to <see cref="DisplayName"/>.
+    /// </summary>
+    public string MechanismKey
+    {
+        get => _mechanismKey ?? DisplayName;
+        init => _mechanismKey = string.IsNullOrEmpty(value) ? null : value;
+    }
+
     /// <summary>True when changing this entry's state requires admin elevation.</summary>
     [JsonIgnore]
     public bool RequiresElevation => Location is
         AutostartLocation.RegistryRunLocalMachine or
         AutostartLocation.StartupFolderCommon or
+        AutostartLocation.ScheduledTask or
         AutostartLocation.Service;
 }
 

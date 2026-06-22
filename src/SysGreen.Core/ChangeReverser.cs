@@ -44,7 +44,11 @@ public sealed class ChangeReverser : IChangeReverser
         var inverseAction = record.Action == ChangeAction.Disable ? ChangeAction.Enable : ChangeAction.Disable;
         var priorState = record.Action == ChangeAction.Disable ? AutostartState.Disabled : AutostartState.Enabled;
         var entry = new AutostartEntry(
-            record.ItemId, record.ItemName, ItemKind.StartupApp, record.Location, null, null, priorState);
+            record.ItemId, record.ItemName, ItemKind.StartupApp, record.Location, null, null, priorState)
+        {
+            // Re-target the exact key the original change used (shortcut name, task path, …).
+            MechanismKey = record.MechanismKey,
+        };
         return new PendingChange(entry, inverseAction);
     }
 }
