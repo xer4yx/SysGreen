@@ -163,6 +163,22 @@ public class ClassifierTests
     }
 
     [Fact]
+    public void Classifies_a_store_app_by_package_name_when_the_publisher_is_unreadable()
+    {
+        // The WindowsApps stub can't be read for a publisher, but the package name (MSTeams) identifies it.
+        var teams = new KnowledgeEntry(null, "MSTeams", null, "Microsoft Teams (Store)",
+            "Teams, packaged", Purpose.Communication, SafetyRating.Safe, null, false);
+        var kb = new JsonKnowledgeBase(new KnowledgeBaseDocument(1, "test", [teams]));
+        var entry = Entry(
+            @"C:\Users\me\AppData\Local\Microsoft\WindowsApps\MSTeams_8wekyb3d8bbwe\ms-teams.exe");
+
+        var c = new Classifier(kb).Classify(entry);
+
+        Assert.Equal(Purpose.Communication, c.Purpose);
+        Assert.Equal(ClassificationSource.KnowledgeBase, c.Source);
+    }
+
+    [Fact]
     public void Matches_via_process_start_target_when_launcher_is_an_updater()
     {
         // Discord's Run entry launches Update.exe (signed by Discord Inc.) which starts Discord.exe.
