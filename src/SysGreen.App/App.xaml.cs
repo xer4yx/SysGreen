@@ -31,15 +31,33 @@ public partial class App : Application
         // Ensure the local SQLite schema exists (ADR-0006).
         _services.GetRequiredService<DatabaseBootstrapper>().EnsureCreated();
 
-        // On first run, seed the habit store from existing Windows launch history (ADR-0008).
-        SeedHabitHistory(_services);
+        // First run shows the welcome/consent screen before anything is tracked (ADR-0012/0014);
+        // afterwards (or on later runs) go straight to the main experience.
+        if (_services.GetRequiredService<Core.Usage.IOnboardingState>().FirstRunComplete)
+            ShowMainExperience();
+        else
+            ShowOnboarding();
+    }
 
-        // Start the Tray Agent so launches are tracked going forward (ADR-0014); it self-registers
-        // its own autostart for subsequent logons.
-        EnsureTrayAgentRunning(_services);
-
-        var window = _services.GetRequiredService<MainWindow>();
+    private void ShowOnboarding()
+    {
+        var vm = _services!.GetRequiredService<OnboardingViewModel>();
+        var window = new OnboardingWindow { DataContext = vm };
+        vm.Completed += () =>
+        {
+            ShowMainExperience(); // show the main window first so the app never hits zero windows
+            window.Close();
+        };
         window.Show();
+    }
+
+    private void ShowMainExperience()
+    {
+        // Seed the habit store from existing Windows history (ADR-0008), then start the Tray Agent so
+        // launches are tracked going forward (only after consent — ADR-0012/0014).
+        SeedHabitHistory(_services!);
+        EnsureTrayAgentRunning(_services!);
+        _services!.GetRequiredService<MainWindow>().Show();
     }
 
     /// <summary>
@@ -84,8 +102,9 @@ public partial class App : Application
         services.AddSingleton<ChangeRecordRepository>();
         services.AddSingleton<IChangeRecordRepository>(sp => sp.GetRequiredService<ChangeRecordRepository>());
         services.AddSingleton<IChangeLog>(sp => sp.GetRequiredService<ChangeRecordRepository>());
-        services.AddSingleton<Core.Usage.ITrackingSettings>(
-            sp => new SettingsRepository(sp.GetRequiredService<IConnectionFactory>()));
+        services.AddSingleton(sp => new SettingsRepository(sp.GetRequiredService<IConnectionFactory>()));
+        services.AddSingleton<Core.Usage.ITrackingSettings>(sp => sp.GetRequiredService<SettingsRepository>());
+        services.AddSingleton<Core.Usage.IOnboardingState>(sp => sp.GetRequiredService<SettingsRepository>());
 
         // Platform providers (ADR-0008 / ADR-0011)
         services.AddSingleton<IExecutablePublisherReader, AuthenticodePublisherReader>();
@@ -142,6 +161,7 @@ public partial class App : Application
         services.AddSingleton<IRecommendationEngine>(_ => new RecommendationEngine());
 
         // UI
+        services.AddTransient<OnboardingViewModel>();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
 
