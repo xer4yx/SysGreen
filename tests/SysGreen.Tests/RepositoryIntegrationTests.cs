@@ -98,6 +98,17 @@ public sealed class RepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void First_run_starts_incomplete_and_can_be_marked_complete()
+    {
+        var settings = new SettingsRepository(_factory);
+        Assert.False(settings.FirstRunComplete); // a fresh install hasn't onboarded yet
+
+        settings.MarkFirstRunComplete();
+
+        Assert.True(new SettingsRepository(_factory).FirstRunComplete); // persists across instances
+    }
+
+    [Fact]
     public void Launch_tracking_defaults_on_and_the_off_switch_persists()
     {
         var settings = new SettingsRepository(_factory);

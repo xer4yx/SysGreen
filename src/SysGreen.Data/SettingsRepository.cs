@@ -7,9 +7,10 @@ namespace SysGreen.Data;
 /// Local app settings in the <c>setting</c> table (ADR-0006). Currently the launch-tracking off
 /// switch (ADR-0012), which is on by default until the user turns it off.
 /// </summary>
-public sealed class SettingsRepository : ITrackingSettings
+public sealed class SettingsRepository : ITrackingSettings, IOnboardingState
 {
     private const string LaunchTrackingKey = "launch_tracking_enabled";
+    private const string FirstRunCompleteKey = "first_run_complete";
 
     private readonly IConnectionFactory _factory;
 
@@ -18,6 +19,10 @@ public sealed class SettingsRepository : ITrackingSettings
     public bool LaunchTrackingEnabled => ReadBool(LaunchTrackingKey, defaultValue: true);
 
     public void SetLaunchTrackingEnabled(bool enabled) => WriteBool(LaunchTrackingKey, enabled);
+
+    public bool FirstRunComplete => ReadBool(FirstRunCompleteKey, defaultValue: false);
+
+    public void MarkFirstRunComplete() => WriteBool(FirstRunCompleteKey, true);
 
     private bool ReadBool(string key, bool defaultValue)
     {
