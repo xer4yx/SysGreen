@@ -47,7 +47,8 @@ public class MainViewModelApplyTests
         history.GetRecent(Arg.Any<int>()).Returns(Array.Empty<ChangeRecord>());
 
         return new MainViewModel(autostart, processes, classifier, engine, usage, history, apply,
-            Substitute.For<IChangeReverser>(), overrides ?? Substitute.For<IOverrideStore>());
+            Substitute.For<IChangeReverser>(), overrides ?? Substitute.For<IOverrideStore>(),
+            Substitute.For<IItemController>());
     }
 
     [Fact]

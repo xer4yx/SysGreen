@@ -59,6 +59,10 @@
                                                             <Button DockPanel.Dock="Right" Content="Never recommend"
                                                                     Padding="6,1" Margin="4,0,0,0"
                                                                     Command="{Binding NeverRecommendCommand}" />
+                                                            <Button DockPanel.Dock="Right" Content="End task"
+                                                                    Padding="8,1" Margin="4,0,0,0"
+                                                                    Command="{Binding EndTaskCommand}"
+                                                                    ToolTip="Close it now for instant RAM relief — it returns next time it starts." />
                                                             <Button DockPanel.Dock="Right" Content="Disable"
                                                                     Padding="8,1" Margin="4,0,0,0"
                                                                     Command="{Binding DisableCommand}" />
