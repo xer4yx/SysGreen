@@ -29,6 +29,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IApplyService _apply;
     private readonly IChangeReverser _reverser;
     private readonly IOverrideStore _overrides;
+    private readonly IItemController _controller;
 
     [ObservableProperty]
     private string _summary = "Loading…";
@@ -55,7 +56,8 @@ public sealed partial class MainViewModel : ObservableObject
         IChangeRecordRepository history,
         IApplyService apply,
         IChangeReverser reverser,
-        IOverrideStore overrides)
+        IOverrideStore overrides,
+        IItemController controller)
     {
         _autostart = autostart;
         _processes = processes;
@@ -66,6 +68,27 @@ public sealed partial class MainViewModel : ObservableObject
         _apply = apply;
         _reverser = reverser;
         _overrides = overrides;
+        _controller = controller;
+        Refresh();
+    }
+
+    /// <summary>
+    /// End Task (CONTEXT.md / ADR-0005): kills the item's running process for instant RAM relief.
+    /// Transient — the app returns next time it starts — and not part of the undo model. The kill is
+    /// logged so it shows in History; a process we can't terminate (e.g. elevated) reports an error.
+    /// </summary>
+    public void EndTask(ManageableItem item)
+    {
+        if (item.RunningProcess is not { } process) return;
+        try
+        {
+            _history.Add(_controller.EndTask(process));
+            ApplyStatus = $"Ended {item.DisplayName}. It returns next time it starts.";
+        }
+        catch (Exception ex)
+        {
+            ApplyStatus = $"Couldn't end {item.DisplayName}: {ex.Message}";
+        }
         Refresh();
     }
 
@@ -213,7 +236,7 @@ public sealed partial class MainViewModel : ObservableObject
                 g.Key, g.OrderBy(i => i.DisplayName).Select(MakeItemVm).ToList(), DisableItems));
 
     private AllItemViewModel MakeItemVm(ManageableItem item) =>
-        new(item, i => DisableItems([i]), SetItemPurpose, NeverRecommend);
+        new(item, i => DisableItems([i]), SetItemPurpose, NeverRecommend, EndTask);
 
     private List<ManageableItem> BuildItems(
         IReadOnlyList<AutostartEntry> entries, IReadOnlyList<ProcessInfo> processes)

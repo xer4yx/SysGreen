@@ -15,10 +15,14 @@ public sealed partial class AllItemViewModel : ObservableObject
     private readonly Action<ManageableItem> _disable;
     private readonly Action<ManageableItem, Purpose> _setPurpose;
     private readonly Action<ManageableItem> _neverRecommend;
+    private readonly Action<ManageableItem> _endTask;
 
     public ManageableItem Item { get; }
     public string DisplayText { get; }
     public bool CanDisable => Item.CanDisable;
+
+    /// <summary>End Task is only available for a live process (CONTEXT.md "Process").</summary>
+    public bool CanEndTask => Item.IsRunning;
     public IReadOnlyList<Purpose> Purposes { get; } = Enum.GetValues<Purpose>();
 
     /// <summary>Bound to the Purpose combo; changing it records a user Override.</summary>
@@ -29,12 +33,14 @@ public sealed partial class AllItemViewModel : ObservableObject
         ManageableItem item,
         Action<ManageableItem> disable,
         Action<ManageableItem, Purpose> setPurpose,
-        Action<ManageableItem> neverRecommend)
+        Action<ManageableItem> neverRecommend,
+        Action<ManageableItem> endTask)
     {
         Item = item;
         _disable = disable;
         _setPurpose = setPurpose;
         _neverRecommend = neverRecommend;
+        _endTask = endTask;
         _selectedPurpose = item.Purpose; // field assignment: don't fire OnSelectedPurposeChanged here
 
         var ram = item.RamEstimateBytes is { } b ? $"≈{RamEstimate.Format(b)}" : "≈ ?";
@@ -52,4 +58,7 @@ public sealed partial class AllItemViewModel : ObservableObject
 
     [RelayCommand]
     private void NeverRecommend() => _neverRecommend(Item);
+
+    [RelayCommand(CanExecute = nameof(CanEndTask))]
+    private void EndTask() => _endTask(Item);
 }
