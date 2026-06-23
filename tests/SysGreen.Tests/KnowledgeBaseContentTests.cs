@@ -67,6 +67,18 @@ public class KnowledgeBaseContentTests
     }
 
     [Fact]
+    public void Recognises_a_packaged_store_app_by_its_package_name()
+    {
+        // The classifier passes the package name for a WindowsApps app whose exe stub can't be read.
+        var hit = Kb.Match("MSTeams", publisher: null,
+            fullPath: @"C:\Users\me\AppData\Local\Microsoft\WindowsApps\MSTeams_8wekyb3d8bbwe\ms-teams.exe");
+
+        Assert.NotNull(hit);
+        Assert.Equal(Purpose.Communication, hit!.Purpose);
+        Assert.Equal(SafetyRating.Safe, hit.Safety);
+    }
+
+    [Fact]
     public void Cloud_sync_apps_are_flagged_as_providing_passive_value()
     {
         // So the habit engine never recommends disabling something that works while its window is closed.

@@ -42,7 +42,12 @@ public static class ExecutableIdentity
     public static IEnumerable<string> CandidateNames(AutostartEntry entry)
     {
         if (entry.TargetExecutable is { Length: > 0 } target) yield return target;
-        if (entry.ExecutablePath is { } path) yield return Path.GetFileName(path);
+        if (entry.ExecutablePath is { } path)
+        {
+            yield return Path.GetFileName(path);
+            // For MSIX/Store apps the exe stub is unreadable; the package name is the stable identity.
+            if (PackagedApp.PackageName(path) is { } package) yield return package;
+        }
     }
 
     public static string? PrimaryName(AutostartEntry entry) => CandidateNames(entry).FirstOrDefault();

@@ -94,6 +94,11 @@
     { "matchPublisher": "Microsoft Corporation", "matchExecutable": "CompatTelRunner.exe", "matchPathPattern": null, "displayName": "Windows Compatibility Telemetry", "description": "Collects compatibility/telemetry data for Windows Update.", "purpose": "WindowsTelemetry", "safety": "Safe", "typicalRamBytes": 31457280, "providesPassiveValue": false },
 
     { "matchPublisher": "Microsoft Corporation", "matchExecutable": "ActionsServer.exe", "matchPathPattern": null, "displayName": "Office Actions Server", "description": "Office background component.", "purpose": "Productivity", "safety": "Caution", "typicalRamBytes": 41943040, "providesPassiveValue": false },
-    { "matchPublisher": "Microsoft Corporation", "matchExecutable": "opushutil.exe", "matchPathPattern": null, "displayName": "Office Background Maintenance", "description": "Office background maintenance helper.", "purpose": "Productivity", "safety": "Caution", "typicalRamBytes": 41943040, "providesPassiveValue": false }
+    { "matchPublisher": "Microsoft Corporation", "matchExecutable": "opushutil.exe", "matchPathPattern": null, "displayName": "Office Background Maintenance", "description": "Office background maintenance helper.", "purpose": "Productivity", "safety": "Caution", "typicalRamBytes": 41943040, "providesPassiveValue": false },
+
+    { "matchPublisher": null, "matchExecutable": "MSTeams", "matchPathPattern": null, "displayName": "Microsoft Teams (Store)", "description": "The packaged Teams app's auto-start. Relaunches when you open it.", "purpose": "Communication", "safety": "Safe", "typicalRamBytes": 524288000, "providesPassiveValue": false },
+    { "matchPublisher": null, "matchExecutable": "SpotifyAB.SpotifyMusic", "matchPathPattern": null, "displayName": "Spotify (Store)", "description": "The packaged Spotify app's auto-start.", "purpose": "Media", "safety": "Safe", "typicalRamBytes": 398458880, "providesPassiveValue": false },
+    { "matchPublisher": null, "matchExecutable": "5319275A.WhatsAppDesktop", "matchPathPattern": null, "displayName": "WhatsApp (Store)", "description": "The packaged WhatsApp app's auto-start.", "purpose": "Communication", "safety": "Safe", "typicalRamBytes": 209715200, "providesPassiveValue": false },
+    { "matchPublisher": null, "matchExecutable": "Microsoft.Todos", "matchPathPattern": null, "displayName": "Microsoft To Do", "description": "The packaged Microsoft To Do app's auto-start.", "purpose": "Productivity", "safety": "Safe", "typicalRamBytes": 157286400, "providesPassiveValue": false }
   ]
 }
