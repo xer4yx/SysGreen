@@ -43,7 +43,7 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _historyEmpty;
 
     public ObservableCollection<RecommendationViewModel> Recommendations { get; } = [];
-    public ObservableCollection<string> AllItems { get; } = [];
+    public ObservableCollection<PurposeGroupViewModel> AllItemGroups { get; } = [];
     public ObservableCollection<HistoryBatchViewModel> History { get; } = [];
 
     public MainViewModel(
@@ -86,11 +86,44 @@ public sealed partial class MainViewModel : ObservableObject
         Refresh();
     }
 
+    /// <summary>Disables the given items in one batch (per-item or whole-group from All Items).</summary>
+    public void DisableItems(IReadOnlyList<ManageableItem> items)
+    {
+        var changes = items
+            .Where(i => i.Autostart is not null && i.CanDisable)
+            .Select(i => new PendingChange(i.Autostart!, ChangeAction.Disable))
+            .ToList();
+        if (changes.Count == 0)
+        {
+            ApplyStatus = "Nothing to disable.";
+            return;
+        }
+
+        var result = _apply.Apply(changes);
+        ApplyStatus = ProblemMessage(result)
+            ?? $"Disabled {result.SucceededCount} of {changes.Count}" +
+               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        Refresh();
+    }
+
+    /// <summary>Records a user Override that relabels the item's Purpose (CONTEXT.md "Override").</summary>
+    public void SetItemPurpose(ManageableItem item, Purpose purpose)
+    {
+        if (item.Autostart is not { } entry) return;
+        if (ExecutableIdentity.PrimaryName(entry) is not { } name) return;
+
+        var existing = _overrides.Get(name);
+        _overrides.Set(new UserOverride(name, purpose, existing?.NeverRecommend ?? false));
+        ApplyStatus = $"Set {item.DisplayName}'s purpose to {purpose}.";
+        Refresh();
+    }
+
     [RelayCommand]
     private void Apply()
     {
         var selected = Recommendations
             .Where(r => r.IsSelected && r.Item.Autostart is not null)
+            .Select(r => r.Item)
             .ToList();
         if (selected.Count == 0)
         {
@@ -98,16 +131,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        var changes = selected
-            .Select(r => new PendingChange(r.Item.Autostart!, ChangeAction.Disable))
-            .ToList();
-
-        var result = _apply.Apply(changes);
-        ApplyStatus = ProblemMessage(result)
-            ?? $"Disabled {result.SucceededCount} of {changes.Count}" +
-               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
-
-        Refresh();
+        DisableItems(selected);
     }
 
     /// <summary>
@@ -148,13 +172,9 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var r in recommendations)
             Recommendations.Add(new RecommendationViewModel(r, NeverRecommend));
 
-        AllItems.Clear();
-        foreach (var i in items.OrderBy(i => i.Purpose).ThenBy(i => i.DisplayName))
-        {
-            var ram = i.RamEstimateBytes is { } b ? $"≈{RamEstimate.Format(b)}" : "≈ ?";
-            AllItems.Add($"{i.DisplayName,-32} [{i.Purpose}/{i.Safety}]  {i.Autostart?.State,-8}  " +
-                         $"{ram,-9} {(i.IsRunning ? "running" : "stopped")}  ({i.Autostart?.Location})");
-        }
+        AllItemGroups.Clear();
+        foreach (var group in BuildItemGroups(items))
+            AllItemGroups.Add(group);
 
         History.Clear();
         var recent = _history.GetRecent();
@@ -183,6 +203,17 @@ public sealed partial class MainViewModel : ObservableObject
             yield return group;
         }
     }
+
+    /// <summary>Groups items by Purpose into actionable rows for the All Items view (Q15).</summary>
+    private IEnumerable<PurposeGroupViewModel> BuildItemGroups(IReadOnlyList<ManageableItem> items) =>
+        items
+            .GroupBy(i => i.Purpose)
+            .OrderBy(g => g.Key)
+            .Select(g => new PurposeGroupViewModel(
+                g.Key, g.OrderBy(i => i.DisplayName).Select(MakeItemVm).ToList(), DisableItems));
+
+    private AllItemViewModel MakeItemVm(ManageableItem item) =>
+        new(item, i => DisableItems([i]), SetItemPurpose, NeverRecommend);
 
     private List<ManageableItem> BuildItems(
         IReadOnlyList<AutostartEntry> entries, IReadOnlyList<ProcessInfo> processes)
