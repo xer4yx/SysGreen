@@ -34,7 +34,7 @@ jobs:
         run: pwsh -File installer/build.ps1
 
       - name: Upload Setup.exe
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: SysGreen-setup
           path: artifacts/installer/*.exe
