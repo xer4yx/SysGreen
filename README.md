@@ -1,0 +1,95 @@
+<div align="center">
+
+<img src="assets/logo.png" alt="SysGreen" width="112" height="112" />
+
+# SysGreen
+
+**A Windows desktop system-footprint manager — reclaim startup RAM safely and reversibly.**
+
+[![CI](https://github.com/xer4yx/SysGreen/actions/workflows/ci.yml/badge.svg)](https://github.com/xer4yx/SysGreen/actions/workflows/ci.yml)
+&nbsp;![version](https://img.shields.io/badge/version-0.20.0-2E7D32)
+&nbsp;![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-555)
+&nbsp;![.NET](https://img.shields.io/badge/.NET-10-512BD4)
+
+</div>
+
+## What it is
+
+SysGreen helps you reduce what loads at startup and sits resident in memory after boot —
+**without breaking your machine**. It enumerates everything that auto-starts, explains what each
+item *is* and *how risky it is to disable*, recommends the safe wins, and lets you **disable and
+undo every change**. It is a *system footprint manager*, **not** a memory profiler, RAM cleaner, or
+"booster".
+
+The long-term mission spans startup time, idle CPU/disk/network, and telemetry; the current **MVP is
+scoped to RAM** — the memory consumed by things that auto-start. See [`CONTEXT.md`](CONTEXT.md) for
+the full glossary and [`docs/adr/`](docs/adr) for the decisions behind the design.
+
+## Highlights
+
+- **Safe & reversible by construction.** Disabling never deletes — it flips Windows' own native
+  disable flags (StartupApproved keys, scheduled-task state, background-app flags), so every change
+  is undoable. A System Restore Point is created before any boot-relevant batch.
+- **Knows what your startup items are.** A curated, offline **Knowledge Base** maps publishers and
+  executables to a **Purpose** (Gaming, Updater, Telemetry, …) and a **Safety Rating** (Safe →
+  Required-for-Boot). Unknowns fall back to a heuristic, and **your own overrides always win**.
+- **Recommends the invisible wins** — telemetry, updaters, bloat you never open — plus
+  **habit-based** suggestions for apps you haven't launched in a while. Nothing is ever auto-applied.
+- **Acts on running processes too.** *End Task* frees RAM right now; *Disable* stops something
+  loading next boot.
+- **Full history & one-click undo.** Every applied batch is recorded and reversible.
+- **Privacy-first.** Launch tracking is local-only, disclosed on first run, and switchable off from
+  the tray. Nothing is uploaded.
+
+## How it's built
+
+A small WPF (.NET 10) app plus two tiny co-located executables:
+
+| Project | Role |
+| --- | --- |
+| `SysGreen.App` | WPF UI; runs **non-elevated**; composes the object graph. |
+| `SysGreen.Core` | Pure domain + logic (classification, recommendations, apply/undo). Unit-tested. |
+| `SysGreen.Platform` | Thin Win32 / registry / WMI / Task Scheduler adapters. |
+| `SysGreen.Data` | Local SQLite storage (usage, change log, settings, overrides). |
+| `SysGreen.Helper` | Short-lived **elevated** worker, spawned only for admin-only changes. |
+| `SysGreen.Agent` | Lightweight resident tray agent that samples app launches. |
+
+Logic lives in `Core` behind interfaces; the OS-touching shells in `Platform` stay thin. See
+[ADR-0011](docs/adr/0011-solution-structure-and-ipc.md) for the structure and IPC, and
+[ADR-0004](docs/adr/0004-privilege-and-process-model.md) for the privilege model.
+
+## Getting started
+
+> Requires Windows 10/11 and the **.NET 10 SDK**. Full IDE setup, conventions, and troubleshooting
+> are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+```bash
+# Build everything
+dotnet build SysGreen.slnx -c Debug
+
+# Run the test suite
+dotnet test tests/SysGreen.Tests/SysGreen.Tests.csproj
+
+# Launch the app (or press F5 in your IDE)
+dotnet run --project src/SysGreen.App/SysGreen.App.csproj
+```
+
+The first launch shows a welcome + privacy screen. The app is **read-only until you click Apply** —
+it changes nothing on your system just by browsing.
+
+## Versioning
+
+SysGreen follows [Semantic Versioning](https://semver.org/) in the **0.x** pre-release line; the
+current version (shown in the app's main window) is sourced from a single `<Version>` in
+`Directory.Build.props`. Bumps are manual and governed by Conventional Commits — see
+[ADR-0015](docs/adr/0015-versioning-and-commit-conventions.md).
+
+## Documentation
+
+- [`CONTEXT.md`](CONTEXT.md) — the ubiquitous language / glossary (read this first).
+- [`docs/adr/`](docs/adr) — Architecture Decision Records (0001–0015).
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to build, test, run, and commit.
+
+## License
+
+No license has been declared for this project yet.

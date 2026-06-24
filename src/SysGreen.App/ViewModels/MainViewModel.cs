@@ -47,6 +47,9 @@ public sealed partial class MainViewModel : ObservableObject
     public ObservableCollection<PurposeGroupViewModel> AllItemGroups { get; } = [];
     public ObservableCollection<HistoryBatchViewModel> History { get; } = [];
 
+    /// <summary>The app's display version (vX.Y.Z), shown in the main-window footer — ADR-0015.</summary>
+    public string AppVersion => AppInfo.DisplayVersion;
+
     public MainViewModel(
         IAutostartProvider autostart,
         IProcessProvider processes,
