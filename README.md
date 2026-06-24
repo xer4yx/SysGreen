@@ -41,6 +41,24 @@ the full glossary and [`docs/adr/`](docs/adr) for the decisions behind the desig
 - **Privacy-first.** Launch tracking is local-only, disclosed on first run, and switchable off from
   the tray. Nothing is uploaded.
 
+## Install
+
+SysGreen is distributed as a single **self-contained** Windows installer — you don't need to install
+.NET or anything else first.
+
+1. Download the latest **`SysGreen-<version>-setup.exe`** from the
+   [**Releases**](https://github.com/xer4yx/SysGreen/releases) page.
+2. Run it and approve the Windows administrator prompt — SysGreen installs per-machine into
+   `Program Files`.
+3. It isn't code-signed yet, so SmartScreen may say *"Windows protected your PC / Unknown publisher."*
+   Click **More info → Run anyway** (signing is a tracked launch blocker —
+   [ADR-0009](docs/adr/0009-distribution-and-signing.md)).
+4. Finish the wizard, then launch SysGreen from the Start Menu.
+
+> Releases are cut from version tags. If the Releases page is empty, no public build has been
+> published yet — you can [build the installer from source](CONTRIBUTING.md#building-the-installer) in
+> the meantime.
+
 ## How it's built
 
 A small WPF (.NET 10) app plus two tiny co-located executables:

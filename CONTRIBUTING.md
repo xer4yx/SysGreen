@@ -56,17 +56,24 @@ into `main` — make sure both pass locally before opening one.
 
 ### Building the installer
 
-The Windows installer (ADR-0009) lives in `installer/`:
+**Optional — you do not need this for normal development.** Inno Setup is only required to *produce
+the installer* locally; building, testing, and running the app don't need it. Releases are built by
+CI (the **Installer** workflow installs Inno on the runner), so most contributors never install it.
+
+If you do want to build the installer yourself, the bits live in `installer/`:
 
 ```powershell
-# Requires Inno Setup 6 (ISCC.exe):  choco install innosetup
+# One-time: install Inno Setup 6 (provides ISCC.exe)
+choco install innosetup        # or download from https://jrsoftware.org/isdl.php
+
 pwsh -File installer/build.ps1
 ```
 
 It publishes the app **self-contained** (win-x64, so end users need no .NET runtime) and compiles
 `installer/SysGreen.iss` into `artifacts/installer/SysGreen-<version>-setup.exe` — a per-machine
-installer (Program Files, elevated). CI also builds it via the **Installer** workflow
-(`.github/workflows/installer.yml`) on demand and on `v*` tags, uploading `Setup.exe` as an artifact.
+installer (Program Files, elevated). CI also builds it via `.github/workflows/installer.yml` on demand
+and on `v*` tags: it uploads `Setup.exe` as a run artifact and, on a tag, attaches it to a **draft
+GitHub Release** for a maintainer to publish (the channel end users download from).
 
 ## How we work
 
