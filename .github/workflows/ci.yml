@@ -1,0 +1,46 @@
+name: CI
+
+# Guards the build and the test suite on every PR into main (and on pushes to
+# main itself). The app targets net10.0-windows / WPF, so this must run on a
+# Windows runner. Tier 4 item #14 — see docs/adr and the project handoff.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Newer pushes to the same PR/branch supersede in-flight runs.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    # Guard both configs: Debug mirrors the documented local build/test commands;
+    # Release is what the installer ships. fail-fast off so one config failing
+    # still reports the other.
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [ Debug, Release ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # No global.json pins the SDK, so install the latest 10.0.x (matches the
+      # local 10.0.300 dev SDK and the net10.0-windows target).
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      # Restores as part of the build; covers the whole .slnx solution.
+      - name: Build
+        run: dotnet build "SysGreen.slnx" -c ${{ matrix.configuration }}
+
+      - name: Test
+        run: dotnet test "tests/SysGreen.Tests/SysGreen.Tests.csproj" -c ${{ matrix.configuration }} --no-build
