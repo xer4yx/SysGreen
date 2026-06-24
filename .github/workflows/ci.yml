@@ -19,6 +19,14 @@ jobs:
   build-and-test:
     runs-on: windows-latest
 
+    # Guard both configs: Debug mirrors the documented local build/test commands;
+    # Release is what the installer ships. fail-fast off so one config failing
+    # still reports the other.
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [ Debug, Release ]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -32,7 +40,7 @@ jobs:
 
       # Restores as part of the build; covers the whole .slnx solution.
       - name: Build
-        run: dotnet build "SysGreen.slnx" -c Debug
+        run: dotnet build "SysGreen.slnx" -c ${{ matrix.configuration }}
 
       - name: Test
-        run: dotnet test "tests/SysGreen.Tests/SysGreen.Tests.csproj" -c Debug --no-build
+        run: dotnet test "tests/SysGreen.Tests/SysGreen.Tests.csproj" -c ${{ matrix.configuration }} --no-build
