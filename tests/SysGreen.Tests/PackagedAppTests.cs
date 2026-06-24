@@ -18,4 +18,12 @@ public class PackagedAppTests
     [InlineData("")]
     public void Is_null_for_a_non_packaged_path(string? path)
         => Assert.Null(PackagedApp.PackageName(path));
+
+    [Theory]
+    [InlineData("Claude_pzs8sxrjxfjjc", "Claude")]
+    [InlineData("E046963F.LenovoCompanion_k1h2ywk1493x8", "E046963F.LenovoCompanion")]
+    [InlineData("MSTeams_8wekyb3d8bbwe", "MSTeams")]
+    [InlineData("NoUnderscore", "NoUnderscore")]
+    public void Name_from_family_strips_the_publisher_hash(string familyName, string expected)
+        => Assert.Equal(expected, PackagedApp.NameFromFamily(familyName));
 }

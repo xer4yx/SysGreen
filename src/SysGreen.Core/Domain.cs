@@ -60,6 +60,7 @@ public enum AutostartLocation
     StartupFolderCommon,      // %ProgramData%\...\Startup (elevation)
     ScheduledTask,
     Service,
+    BackgroundApp,            // UWP background access, HKCU BackgroundAccessApplications (no elevation)
 }
 
 /// <summary>A live runtime instance consuming RAM now. Transient; acted on with End Task.</summary>

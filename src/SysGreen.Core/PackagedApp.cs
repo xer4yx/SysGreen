@@ -18,9 +18,17 @@ public static class PackagedApp
         if (i < 0 || i + 1 >= parts.Length) return null;
 
         // The next segment is the package family name: "<package name>_<publisher hash>".
-        var familyName = parts[i + 1];
-        var hash = familyName.LastIndexOf('_');
-        var name = hash > 0 ? familyName[..hash] : familyName;
+        var name = NameFromFamily(parts[i + 1]);
         return string.IsNullOrEmpty(name) ? null : name;
+    }
+
+    /// <summary>
+    /// The package name from a family name — the part before the trailing publisher hash
+    /// ("Claude_pzs8sxrjxfjjc" → "Claude"). Returns the input unchanged if there's no hash.
+    /// </summary>
+    public static string NameFromFamily(string familyName)
+    {
+        var hash = familyName.LastIndexOf('_');
+        return hash > 0 ? familyName[..hash] : familyName;
     }
 }

@@ -48,24 +48,32 @@ public sealed class ScheduledTaskItemController : IItemController
 
 /// <summary>
 /// Routes each Disable/Enable to the controller for the item's mechanism — StartupApproved flags for
-/// Run keys and Startup folders, the Task Scheduler for scheduled tasks (ADR-0005). End Task is
-/// process termination, mechanism-agnostic, so it always goes to the StartupApproved controller.
+/// Run keys and Startup folders, the Task Scheduler for scheduled tasks, the background-access flag
+/// for UWP background apps (ADR-0005). End Task is process termination, mechanism-agnostic, so it
+/// always goes to the StartupApproved controller.
 /// </summary>
 public sealed class DispatchingItemController : IItemController
 {
     private readonly IItemController _startupApproved;
     private readonly IItemController _scheduledTask;
+    private readonly IItemController _backgroundApp;
 
-    public DispatchingItemController(IItemController startupApproved, IItemController scheduledTask)
+    public DispatchingItemController(
+        IItemController startupApproved, IItemController scheduledTask, IItemController backgroundApp)
     {
         _startupApproved = startupApproved;
         _scheduledTask = scheduledTask;
+        _backgroundApp = backgroundApp;
     }
 
     public ChangeRecord Disable(AutostartEntry entry) => For(entry).Disable(entry);
     public ChangeRecord Enable(AutostartEntry entry) => For(entry).Enable(entry);
     public ChangeRecord EndTask(ProcessInfo process) => _startupApproved.EndTask(process);
 
-    private IItemController For(AutostartEntry entry) =>
-        entry.Location == AutostartLocation.ScheduledTask ? _scheduledTask : _startupApproved;
+    private IItemController For(AutostartEntry entry) => entry.Location switch
+    {
+        AutostartLocation.ScheduledTask => _scheduledTask,
+        AutostartLocation.BackgroundApp => _backgroundApp,
+        _ => _startupApproved,
+    };
 }

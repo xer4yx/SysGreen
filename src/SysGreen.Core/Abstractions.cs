@@ -78,6 +78,17 @@ public interface IScheduledTaskStore
 }
 
 /// <summary>
+/// Reads/writes whether a UWP app may run in the background — the non-destructive disable mechanism
+/// for the BackgroundApp kind (HKCU BackgroundAccessApplications, ADR-0005), keyed by package family
+/// name. Humble Win32 seam; the logic is the tested <see cref="Startup.BackgroundAppItemController"/>.
+/// </summary>
+public interface IBackgroundAppStore
+{
+    bool IsEnabled(string packageFamilyName);
+    void SetEnabled(string packageFamilyName, bool enabled);
+}
+
+/// <summary>
 /// Reads the Authenticode publisher (signer common name) of an executable, or null if it's
 /// unsigned/unreadable. Powers publisher-based Knowledge Base matching (ADR-0010).
 /// </summary>
