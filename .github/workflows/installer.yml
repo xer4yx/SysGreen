@@ -1,0 +1,41 @@
+name: Installer
+
+# Builds the per-machine Windows installer (ADR-0009 / Tier 4 #15): publishes the app self-contained
+# and compiles installer/SysGreen.iss with Inno Setup into Setup.exe, uploaded as a build artifact.
+# Verified the same way as the CI slice — by reading this Actions run. Runs on demand and on v* tags
+# (it's heavier than the per-PR CI: a self-contained WPF publish + installer compile).
+
+on:
+  workflow_dispatch:
+  push:
+    tags: [ 'v*' ]
+
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        run: pwsh -File installer/build.ps1
+
+      - name: Upload Setup.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: SysGreen-setup
+          path: artifacts/installer/*.exe
+          if-no-files-found: error
