@@ -54,6 +54,20 @@ Notes:
 CI runs `dotnet build` + `dotnet test` on `windows-latest` across **Debug and Release** for every PR
 into `main` — make sure both pass locally before opening one.
 
+### Building the installer
+
+The Windows installer (ADR-0009) lives in `installer/`:
+
+```powershell
+# Requires Inno Setup 6 (ISCC.exe):  choco install innosetup
+pwsh -File installer/build.ps1
+```
+
+It publishes the app **self-contained** (win-x64, so end users need no .NET runtime) and compiles
+`installer/SysGreen.iss` into `artifacts/installer/SysGreen-<version>-setup.exe` — a per-machine
+installer (Program Files, elevated). CI also builds it via the **Installer** workflow
+(`.github/workflows/installer.yml`) on demand and on `v*` tags, uploading `Setup.exe` as an artifact.
+
 ## How we work
 
 - **Test-Driven Development.** Write the test first, run it, watch it fail *for the right reason*,
