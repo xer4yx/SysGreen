@@ -115,11 +115,13 @@ public partial class App : Application
         services.AddSingleton<StartupFolderAutostartProvider>();
         services.AddSingleton<ScheduledTaskProvider>();
         services.AddSingleton<IScheduledTaskProvider>(sp => sp.GetRequiredService<ScheduledTaskProvider>());
+        services.AddSingleton<BackgroundAppProvider>();
         services.AddSingleton<IAutostartProvider>(sp => new StartupApprovedAutostartProvider(
             new CompositeAutostartProvider(
                 sp.GetRequiredService<RegistryAutostartProvider>(),
                 sp.GetRequiredService<StartupFolderAutostartProvider>(),
-                sp.GetRequiredService<ScheduledTaskProvider>()),
+                sp.GetRequiredService<ScheduledTaskProvider>(),
+                sp.GetRequiredService<BackgroundAppProvider>()),
             sp.GetRequiredService<IStartupApprovedStore>()));
         services.AddSingleton<IProcessProvider, ProcessProvider>();
         services.AddSingleton<IWindowsServiceProvider, WindowsServiceProvider>();
@@ -127,11 +129,20 @@ public partial class App : Application
         services.AddSingleton<IRestorePointApi, WmiRestorePointApi>();
         services.AddSingleton<IRestorePointService, RestorePointService>();
 
-        // Non-destructive disable/enable + end task (ADR-0005), test-driven controller + adapters
+        // Non-destructive disable/enable + end task (ADR-0005), test-driven controller + adapters.
+        // The in-process controller dispatches per mechanism; background apps disable non-elevated
+        // (HKCU), so the App handles them directly (scheduled tasks elevate to the Helper instead).
         services.AddSingleton<IStartupApprovedStore, StartupApprovedRegistryStore>();
+        services.AddSingleton<IScheduledTaskStore, TaskSchedulerStore>();
+        services.AddSingleton<IBackgroundAppStore, BackgroundAppRegistryStore>();
         services.AddSingleton<IProcessTerminator, ProcessTerminator>();
         services.AddSingleton<IClock, SystemClock>();
-        services.AddSingleton<IItemController, StartupApprovedItemController>();
+        services.AddSingleton<IItemController>(sp => new DispatchingItemController(
+            new StartupApprovedItemController(
+                sp.GetRequiredService<IStartupApprovedStore>(),
+                sp.GetRequiredService<IProcessTerminator>(), sp.GetRequiredService<IClock>()),
+            new ScheduledTaskItemController(sp.GetRequiredService<IScheduledTaskStore>(), sp.GetRequiredService<IClock>()),
+            new BackgroundAppItemController(sp.GetRequiredService<IBackgroundAppStore>(), sp.GetRequiredService<IClock>())));
 
         // Apply routing (ADR-0004 / ADR-0011): per-user batches run in-process via ApplyService;
         // any batch with an admin-only item is delegated whole to the elevated Helper (one UAC

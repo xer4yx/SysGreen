@@ -21,10 +21,12 @@ static IApplyService BuildApplyService(string databasePath)
     new DatabaseBootstrapper(factory).EnsureCreated(); // idempotent; the App normally created it first
     var clock = new SystemClock();
     // Dispatch per mechanism: StartupApproved flags for Run keys/Startup folders, the Task Scheduler
-    // for scheduled tasks. Tasks always route here (they require elevation), so the Helper owns both.
+    // for scheduled tasks, the background-access flag for UWP background apps. Any of these can appear
+    // in an elevated batch, so the Helper owns all three.
     var controller = new DispatchingItemController(
         new StartupApprovedItemController(new StartupApprovedRegistryStore(), new ProcessTerminator(), clock),
-        new ScheduledTaskItemController(new TaskSchedulerStore(), clock));
+        new ScheduledTaskItemController(new TaskSchedulerStore(), clock),
+        new BackgroundAppItemController(new BackgroundAppRegistryStore(), clock));
     var restorePoints = new RestorePointService(new WmiRestorePointApi());
     var changeLog = new ChangeRecordRepository(factory);
     return new ApplyService(controller, changeLog, restorePoints, clock);

@@ -70,9 +70,23 @@ public class ScheduledTaskControllerTests
         var startup = new RecordingController();
         var task = new RecordingController();
 
-        new DispatchingItemController(startup, task).Disable(Task(@"\Updater", "Updater"));
+        new DispatchingItemController(startup, task, new RecordingController()).Disable(Task(@"\Updater", "Updater"));
 
         Assert.Equal(1, task.DisableCount);
+        Assert.Equal(0, startup.DisableCount);
+    }
+
+    [Fact]
+    public void Dispatcher_routes_a_background_app_to_the_background_controller()
+    {
+        var startup = new RecordingController();
+        var background = new RecordingController();
+        var entry = new AutostartEntry("BackgroundApp:Claude_x", "Claude", ItemKind.BackgroundApp,
+            AutostartLocation.BackgroundApp, null, null, AutostartState.Enabled) { MechanismKey = "Claude_x" };
+
+        new DispatchingItemController(startup, new RecordingController(), background).Disable(entry);
+
+        Assert.Equal(1, background.DisableCount);
         Assert.Equal(0, startup.DisableCount);
     }
 
@@ -82,7 +96,7 @@ public class ScheduledTaskControllerTests
         var startup = new RecordingController();
         var task = new RecordingController();
 
-        new DispatchingItemController(startup, task).Disable(Run("Spotify"));
+        new DispatchingItemController(startup, task, new RecordingController()).Disable(Run("Spotify"));
 
         Assert.Equal(1, startup.DisableCount);
         Assert.Equal(0, task.DisableCount);
@@ -94,7 +108,7 @@ public class ScheduledTaskControllerTests
         var startup = new RecordingController();
         var task = new RecordingController();
 
-        new DispatchingItemController(startup, task).EndTask(new ProcessInfo(1, "x", null, 0));
+        new DispatchingItemController(startup, task, new RecordingController()).EndTask(new ProcessInfo(1, "x", null, 0));
 
         Assert.Equal(1, startup.EndTaskCount);
         Assert.Equal(0, task.EndTaskCount);
