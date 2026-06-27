@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using SysGreen.App.Services;
 using SysGreen.App.ViewModels;
 using SysGreen.Core;
 using SysGreen.Core.Abstractions;
@@ -58,6 +59,8 @@ public partial class App : Application
         SeedHabitHistory(_services!);
         EnsureTrayAgentRunning(_services!);
         _services!.GetRequiredService<MainWindow>().Show();
+        // Check for a newer release in the background; the banner appears if one is found (ADR-0009).
+        _ = _services.GetRequiredService<MainViewModel>().CheckForUpdatesAsync();
     }
 
     /// <summary>
@@ -170,6 +173,11 @@ public partial class App : Application
         services.AddSingleton<IClassifier>(sp => new OverridingClassifier(
             sp.GetRequiredService<Classifier>(), sp.GetRequiredService<IOverrideStore>()));
         services.AddSingleton<IRecommendationEngine>(_ => new RecommendationEngine());
+
+        // Self-update via Velopack reading GitHub Releases (ADR-0009). No-op when not a Velopack
+        // install, so it's harmless in dev runs.
+        services.AddSingleton<IUpdateService>(_ =>
+            new VelopackUpdateService("https://github.com/xer4yx/SysGreen"));
 
         // UI
         services.AddTransient<OnboardingViewModel>();
