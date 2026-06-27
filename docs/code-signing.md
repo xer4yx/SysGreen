@@ -45,33 +45,27 @@ Plus the privacy statement and the Committers/Reviewers/Approvers role lists —
    - **Variables** `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG`, `SIGNPATH_POLICY_SLUG`.
    - **Variable** `ENABLE_CODE_SCANNING = true` (turns on CodeQL + dependency-review once public).
 
-## CI wiring to enable (paste into `.github/workflows/installer.yml`)
+## CI wiring to enable
 
-Add this step to the `build-installer` job, **after** "Upload Setup.exe" and **before** the release
-step, so a signed installer is what gets attached to the release. It no-ops until the variables above
-are set.
+Distribution is **Velopack** now (ADR-0009), so signing integrates with the **packaging** step rather
+than a standalone installer-signing step. With SignPath Foundation there are two shapes; pick one when
+enrolled (both no-op until the `SIGNPATH_*` variables are set):
 
-```yaml
-      # Submit the installer to SignPath for signing (no-op until SignPath vars/secrets are set).
-      - name: Code sign installer (SignPath)
-        id: signpath
-        if: vars.SIGNPATH_ORGANIZATION_ID != ''
-        uses: signpath/github-action-submit-signing-request@v1
-        with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
-          github-artifact-id: ${{ steps.upload.outputs.artifact-id }}   # set an `id: upload` on the upload step
-          wait-for-completion: true
-          output-artifact-directory: artifacts/installer-signed
-```
+1. **Sign during `vpk pack`** — Velopack signs each PE file as it packages, via a sign template that
+   shells out to SignPath's signing CLI. In `installer/build.ps1`, add to the `vpk pack` args (guarded
+   on the env vars):
+   ```
+   --signTemplate "signpath-cli sign --organization-id $env:SIGNPATH_ORGANIZATION_ID ... {{file}}"
+   ```
+   `{{file}}` is the placeholder Velopack substitutes per file.
 
-Then point the release step at `artifacts/installer-signed/*.exe` instead of `artifacts/installer/*.exe`.
+2. **Submit the packed artifacts after pack** — keep `vpk pack` unsigned, then submit the produced
+   `artifacts/releases/*` to SignPath with the
+   [signpath/github-action-submit-signing-request](https://github.com/signpath/github-action-submit-signing-request)
+   action and re-attach the signed outputs to the release.
 
-> Confirm the action's input names against the current
-> [signpath/github-action-submit-signing-request](https://github.com/signpath/github-action-submit-signing-request)
-> README before enabling — SignPath occasionally revises them.
+> Confirm the exact flags against the current Velopack and SignPath docs before enabling — both revise
+> their CLIs occasionally. The `SIGNPATH_*` secret/variables and the gate are the same either way.
 
 ## Alternatives (if SignPath Foundation doesn't fit)
 

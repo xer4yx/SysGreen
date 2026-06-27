@@ -44,17 +44,17 @@ the full glossary and [`docs/adr/`](docs/adr) for the decisions behind the desig
 
 ## Install
 
-SysGreen is distributed as a single **self-contained** Windows installer — you don't need to install
-.NET or anything else first.
+SysGreen is distributed as a **self-contained** Windows installer (built with [Velopack](https://velopack.io)) —
+you don't need .NET or anything else first, and after the first install it **updates itself**.
 
-1. Download the latest **`SysGreen-<version>-setup.exe`** from the
+1. Download **`SysGreen-win-Setup.exe`** from the
    [**Releases**](https://github.com/xer4yx/SysGreen/releases) page.
-2. Run it and approve the Windows administrator prompt — SysGreen installs per-machine into
-   `Program Files`.
+2. Run it. It installs for the current user (no administrator prompt) and launches automatically.
 3. It isn't code-signed yet, so SmartScreen may say *"Windows protected your PC / Unknown publisher."*
    Click **More info → Run anyway** (signing is a tracked launch blocker —
    [ADR-0009](docs/adr/0009-distribution-and-signing.md)).
-4. Finish the wizard, then launch SysGreen from the Start Menu.
+4. From then on, SysGreen checks for new releases on launch and offers to **Install & restart** when
+   one is available.
 
 > Releases are cut from version tags. If the Releases page is empty, no public build has been
 > published yet — you can [build the installer from source](CONTRIBUTING.md#building-the-installer) in
