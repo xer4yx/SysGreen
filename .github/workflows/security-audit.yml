@@ -1,0 +1,61 @@
+name: Security audit
+
+# Two layers of dependency security:
+#  - nuget-audit: fails on known-vulnerable NuGet packages (runs on Windows — the app targets
+#    net10.0-windows, which can't restore on Linux).
+#  - dependency-review: on PRs, flags newly-introduced vulnerable dependencies. It needs the GitHub
+#    dependency graph (free on public repos; GHAS on private), so it's gated behind ENABLE_CODE_SCANNING.
+
+on:
+  push:
+    branches: [ main, staging, dev ]
+  pull_request:
+    branches: [ main, staging, dev ]
+  schedule:
+    - cron: '0 6 * * 1'   # weekly, Monday 06:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  nuget-audit:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore "SysGreen.slnx"
+
+      - name: Audit NuGet packages for known vulnerabilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$(dotnet list "SysGreen.slnx" package --vulnerable --include-transitive 2>&1 || true)"
+          echo "$out"
+          if echo "$out" | grep -qiE 'has the following vulnerable packages'; then
+            if echo "$out" | grep -qiE '\b(High|Critical)\b'; then
+              echo "::error::High/Critical vulnerable NuGet package(s) found."
+              exit 1
+            fi
+            echo "::warning::Vulnerable package(s) found (below High) — review advisories above."
+          else
+            echo "No known-vulnerable NuGet packages."
+          fi
+
+  dependency-review:
+    if: github.event_name == 'pull_request' && vars.ENABLE_CODE_SCANNING == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high

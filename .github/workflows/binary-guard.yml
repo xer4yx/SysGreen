@@ -1,0 +1,26 @@
+name: Binary guard
+
+# Fails a PR that introduces a compiled binary or executable — detected by file extension AND by
+# executable "magic bytes" (so a renamed .exe is still caught). This is a defence against a
+# contributor slipping in a malicious binary that can't be reviewed as text. Known-good binary assets
+# (the app icon, images) are allowlisted in .github/scripts/binary-guard.sh.
+
+on:
+  pull_request:
+    branches: [ main, staging, dev ]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for diff)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Scan PR for new binaries / executables
+        shell: bash
+        run: bash .github/scripts/binary-guard.sh "origin/${{ github.base_ref }}"
