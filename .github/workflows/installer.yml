@@ -1,9 +1,10 @@
 name: Installer
 
-# Builds the per-machine Windows installer (ADR-0009 / Tier 4 #15): publishes the app self-contained
-# and compiles installer/SysGreen.iss with Inno Setup into Setup.exe, uploaded as a build artifact.
-# Verified the same way as the CI slice — by reading this Actions run. Runs on demand and on v* tags
-# (it's heavier than the per-PR CI: a self-contained WPF publish + installer compile).
+# Builds the Velopack release (ADR-0009 / Tier 4 #15): publishes the app self-contained and runs
+# `vpk pack` to produce Setup.exe + full/delta packages + the release feed. On a v* tag it attaches
+# them all to a DRAFT GitHub Release — which is both the installer download AND the self-update feed
+# the app reads (VelopackUpdateService). A maintainer publishes the draft when ready.
+# Verified by reading this Actions run. Heavier than per-PR CI, so it runs on demand and on v* tags.
 
 on:
   workflow_dispatch:
@@ -14,7 +15,7 @@ concurrency:
   group: installer-${{ github.ref }}
   cancel-in-progress: true
 
-# Needed for the release step to create/attach the Setup.exe on a tag.
+# Needed for the release step to create/attach assets on a tag.
 permissions:
   contents: write
 
@@ -31,35 +32,27 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress -y
-
-      - name: Build installer
+      # build.ps1 publishes self-contained and runs vpk pack (installing the Velopack CLI if needed).
+      - name: Build Velopack release
         run: pwsh -File installer/build.ps1
 
-      # Run artifact: for developers/CI (login-gated, expires) — not a consumer channel.
-      - name: Upload Setup.exe
+      # Run artifact: for developers/CI (login-gated, expires) — not the consumer channel.
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: SysGreen-setup
-          path: artifacts/installer/*.exe
+          name: SysGreen-velopack
+          path: artifacts/releases/*
           if-no-files-found: error
 
-      # Fixed-name copy so the landing page can link to .../releases/latest/download/SysGreen-Setup.exe
-      # without being updated on every release (the built asset name carries the version).
-      - name: Copy fixed-name installer
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: bash
-        run: cp artifacts/installer/*.exe artifacts/installer/SysGreen-Setup.exe
-
-      # On a version tag, attach Setup.exe to a GitHub Release — the channel end users install from.
-      # Created as a DRAFT so a maintainer reviews and clicks Publish; drop --draft to auto-publish.
-      - name: Attach installer to draft release
+      # On a version tag, attach the full Velopack release (Setup.exe + packages + feed) to a DRAFT
+      # GitHub Release — the channel users install from and the app self-updates from. A maintainer
+      # reviews and clicks Publish.
+      - name: Attach release to draft GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" artifacts/installer/*.exe \
+          gh release create "$GITHUB_REF_NAME" artifacts/releases/* \
             --draft --title "SysGreen $GITHUB_REF_NAME" --generate-notes \
-          || gh release upload "$GITHUB_REF_NAME" artifacts/installer/*.exe --clobber
+          || gh release upload "$GITHUB_REF_NAME" artifacts/releases/* --clobber
