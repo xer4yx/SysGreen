@@ -60,7 +60,7 @@ public partial class App : Application
         EnsureTrayAgentRunning(_services!);
         _services!.GetRequiredService<MainWindow>().Show();
         // Check for a newer release in the background; the banner appears if one is found (ADR-0009).
-        _ = _services.GetRequiredService<MainViewModel>().CheckForUpdatesAsync();
+        _ = _services!.GetRequiredService<MainViewModel>().CheckForUpdatesAsync();
     }
 
     /// <summary>
