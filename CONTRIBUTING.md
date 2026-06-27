@@ -84,8 +84,37 @@ GitHub Release** for a maintainer to publish (the channel end users download fro
   testable shape into `Core`.
 - **Zero-warning bar.** Builds are expected to be **0 warnings / 0 errors** (nullable reference types
   and .NET analyzers are on).
-- **One slice per branch off `main`.** Open a pull request into `main`; CI must be green. Don't
-  rewrite published history without agreement, and stage specific paths rather than `git add -A`.
+- **One slice per branch.** Branch from `dev`, keep changes focused, stage specific paths (not
+  `git add -A`), and don't rewrite published history without agreement. See **Branching model** below.
+
+## Branching model
+
+Three long-lived, protected branches:
+
+| Branch | Purpose | Merges from |
+| --- | --- | --- |
+| `dev` | Integration — where day-to-day contributions land | feature branches (`feat/…`, `fix/…`, `docs/…`) via PR |
+| `staging` | Pre-release hardening — the last line of defence | `dev` via PR, once a batch is ready |
+| `main` | **Release only** — what gets tagged, built, and signed | `staging` via PR |
+
+So as a contributor: **branch off `dev` → open a PR into `dev`.** Maintainers promote
+`dev → staging → main`; releases are cut from `main` by tagging `vX.Y.Z` (the Installer workflow then
+builds the installer and drafts a GitHub Release). All three branches are protected: green CI +
+security checks are required and direct pushes are blocked — everything goes through a PR.
+
+## Security & what not to commit
+
+Every PR runs automated checks (`.github/workflows/`): the build + test matrix, a **binary guard**
+(rejects compiled executables/binaries by extension *and* by magic bytes, so a renamed `.exe` is
+caught), a **NuGet vulnerability audit**, and — once the repo is public — **CodeQL** and **dependency
+review**.
+
+- **Never commit binaries or executables** (`.exe`, `.dll`, `.msi`, …). The only permitted binary
+  assets are images/icons under `assets/`; build outputs are git-ignored. The binary guard will fail
+  your PR otherwise.
+- **Never commit secrets** — tokens, keys, certificates, `.env` files.
+- New dependencies must come from trusted sources and be free of known High/Critical vulnerabilities.
+- Report security issues privately — see [SECURITY.md](SECURITY.md).
 
 ## Commit messages — Conventional Commits
 
@@ -147,10 +176,12 @@ Nerdbank.GitVersioning) — see [ADR-0015](docs/adr/0015-versioning-and-commit-c
 
 ## Pull requests
 
-- Keep a PR to a single slice; describe *what* and *why*, and link any relevant ADR.
+- **Target `dev`** (see [Branching model](#branching-model)). Keep a PR to a single slice; describe
+  *what* and *why*, and link any relevant ADR.
 - If a change introduces new domain terms or a hard-to-reverse decision, update
   [`CONTEXT.md`](CONTEXT.md) and/or add an ADR in the same PR.
-- Ensure CI (build + test, Debug & Release) is green.
+- All required checks must be green before merge: CI (build + test, Debug & Release), the binary guard,
+  and the NuGet vulnerability audit.
 
 ## Troubleshooting
 
