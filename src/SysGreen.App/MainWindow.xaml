@@ -11,6 +11,16 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
     <DockPanel Margin="12">
+        <Border DockPanel.Dock="Top" Background="#E8F5E9" BorderBrush="#2E7D32" BorderThickness="1"
+                CornerRadius="4" Padding="10,6" Margin="0,0,0,8"
+                Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Install &amp; restart" Padding="10,3"
+                        Command="{Binding InstallUpdateCommand}" />
+                <TextBlock VerticalAlignment="Center" Foreground="#1B5E20"
+                           Text="{Binding UpdateVersion, StringFormat='A new version ({0}) is available.'}" />
+            </DockPanel>
+        </Border>
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
             <Image Source="pack://application:,,,/Assets/logo.ico" Width="26" Height="26"
                    DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />

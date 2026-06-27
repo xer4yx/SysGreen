@@ -1,19 +1,14 @@
 <#
 .SYNOPSIS
-    Builds the SysGreen Windows installer (ADR-0009).
+    Builds the SysGreen Velopack release (ADR-0009).
 
 .DESCRIPTION
-    Publishes the App, Helper, and Agent self-contained (win-x64) into one payload folder so the
-    installed app needs no .NET runtime pre-installed, then compiles installer/SysGreen.iss with
-    Inno Setup (ISCC) into a per-machine Setup.exe. The version is read from Directory.Build.props
-    (the single source of truth, ADR-0015) and injected into the .iss.
+    Publishes the App, Helper, and Agent self-contained (win-x64) into one payload, then runs
+    `vpk pack` (Velopack) to produce the installer + delta/full packages + release feed under
+    artifacts/releases. Velopack installs per-user and powers in-app self-update (the app reads its
+    GitHub Releases via VelopackUpdateService). Version comes from Directory.Build.props (ADR-0015).
 
-    Outputs:
-      artifacts/publish    - the self-contained payload
-      artifacts/installer  - SysGreen-<version>-setup.exe
-
-    Requires the .NET 10 SDK and Inno Setup 6 (ISCC.exe). On CI the installer.yml workflow installs
-    Inno via choco; locally: choco install innosetup  (or https://jrsoftware.org/isdl.php).
+    Requires the .NET 10 SDK and the Velopack CLI (`vpk`). If missing, it is installed as a global tool.
 #>
 [CmdletBinding()]
 param(
@@ -24,7 +19,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $publishDir = Join-Path $root "artifacts\publish"
-$iss = Join-Path $PSScriptRoot "SysGreen.iss"
+$releaseDir = Join-Path $root "artifacts\releases"
 
 function Invoke-Checked([string]$file, [string[]]$arguments) {
     & $file @arguments
@@ -34,9 +29,9 @@ function Invoke-Checked([string]$file, [string[]]$arguments) {
 # --- version (single source of truth: Directory.Build.props) ---
 [xml]$props = Get-Content (Join-Path $root "Directory.Build.props")
 $version = $props.SelectSingleNode("//Version").InnerText.Trim()
-Write-Host "SysGreen installer: version $version, $Configuration/$Runtime" -ForegroundColor Cyan
+Write-Host "SysGreen (Velopack): version $version, $Configuration/$Runtime" -ForegroundColor Cyan
 
-# --- publish payload (self-contained; App last? no: App first, then overlay SCD Helper/Agent) ---
+# --- publish payload (self-contained: App, then overlay self-contained Helper + Agent) ---
 if (Test-Path $publishDir) { Remove-Item -Recurse -Force $publishDir }
 $projects = @(
     "src\SysGreen.App\SysGreen.App.csproj",
@@ -52,19 +47,25 @@ foreach ($proj in $projects) {
     )
 }
 
-# --- locate ISCC ---
-$iscc = @(
-    (Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe"),
-    (Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe")
-) | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $iscc) { $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source }
-if (-not $iscc) {
-    throw "Inno Setup (ISCC.exe) not found. Install it: 'choco install innosetup' or https://jrsoftware.org/isdl.php"
+# --- ensure the Velopack CLI is available ---
+if (-not (Get-Command vpk -ErrorAction SilentlyContinue)) {
+    Write-Host "installing vpk (Velopack CLI)" -ForegroundColor DarkGray
+    Invoke-Checked "dotnet" @("tool", "install", "-g", "vpk")
+    $env:PATH = "$env:PATH;$env:USERPROFILE\.dotnet\tools"
 }
 
-# --- compile the installer ---
-Write-Host "compile $iss" -ForegroundColor DarkGray
-Invoke-Checked $iscc @("/DMyAppVersion=$version", "/DPayloadDir=$publishDir", $iss)
+# --- pack the Velopack release (Setup.exe + full/delta packages + releases feed) ---
+Invoke-Checked "vpk" @(
+    "pack",
+    "--packId", "SysGreen",
+    "--packTitle", "SysGreen",
+    "--packAuthors", "xer4yx and the SysGreen contributors",
+    "--packVersion", $version,
+    "--packDir", $publishDir,
+    "--mainExe", "SysGreen.App.exe",
+    "--icon", (Join-Path $root "assets\logo.ico"),
+    "--outputDir", $releaseDir
+)
 
-$setup = Join-Path $root "artifacts\installer\SysGreen-$version-setup.exe"
-Write-Host "OK -> $setup" -ForegroundColor Green
+Write-Host "OK -> $releaseDir" -ForegroundColor Green
+Get-ChildItem $releaseDir | Select-Object Name, Length | Format-Table -AutoSize

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SysGreen.App.Services;
 using SysGreen.Core.Abstractions;
 using SysGreen.Core.Apply;
 using SysGreen.Core.ChangeLog;
@@ -30,6 +31,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IChangeReverser _reverser;
     private readonly IOverrideStore _overrides;
     private readonly IItemController _controller;
+    private readonly IUpdateService? _updateService;
 
     [ObservableProperty]
     private string _summary = "Loading…";
@@ -42,6 +44,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _historyEmpty;
+
+    [ObservableProperty]
+    private bool _updateAvailable;
+
+    [ObservableProperty]
+    private string _updateVersion = "";
 
     public ObservableCollection<RecommendationViewModel> Recommendations { get; } = [];
     public ObservableCollection<PurposeGroupViewModel> AllItemGroups { get; } = [];
@@ -60,7 +68,8 @@ public sealed partial class MainViewModel : ObservableObject
         IApplyService apply,
         IChangeReverser reverser,
         IOverrideStore overrides,
-        IItemController controller)
+        IItemController controller,
+        IUpdateService? updateService = null)
     {
         _autostart = autostart;
         _processes = processes;
@@ -72,7 +81,27 @@ public sealed partial class MainViewModel : ObservableObject
         _reverser = reverser;
         _overrides = overrides;
         _controller = controller;
+        _updateService = updateService;
         Refresh();
+    }
+
+    /// <summary>
+    /// Checks for a newer release (Velopack — ADR-0009) and surfaces the "update available" banner.
+    /// No-ops when no update service is wired (tests) or the app isn't a Velopack install.
+    /// </summary>
+    public async Task CheckForUpdatesAsync()
+    {
+        if (_updateService is null) return;
+        var result = await _updateService.CheckForUpdateAsync();
+        UpdateAvailable = result.Available;
+        UpdateVersion = result.Version ?? "";
+    }
+
+    [RelayCommand]
+    private async Task InstallUpdate()
+    {
+        if (_updateService is null) return;
+        await _updateService.ApplyAndRestartAsync();
     }
 
     /// <summary>
