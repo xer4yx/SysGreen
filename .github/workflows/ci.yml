@@ -1,14 +1,14 @@
 name: CI
 
-# Guards the build and the test suite on every PR into main (and on pushes to
-# main itself). The app targets net10.0-windows / WPF, so this must run on a
-# Windows runner. Tier 4 item #14 — see docs/adr and the project handoff.
+# Guards the build and the test suite on every PR into (and push to) the protected
+# branches dev / staging / main. The app targets net10.0-windows / WPF, so this must
+# run on a Windows runner. Tier 4 item #14 — see docs/adr and the project handoff.
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, staging, dev ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, staging, dev ]
 
 # Newer pushes to the same PR/branch supersede in-flight runs.
 concurrency:

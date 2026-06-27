@@ -10,6 +10,7 @@
 &nbsp;![version](https://img.shields.io/badge/version-0.20.0-2E7D32)
 &nbsp;![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-555)
 &nbsp;![.NET](https://img.shields.io/badge/.NET-10-512BD4)
+&nbsp;[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 </div>
 
@@ -102,12 +103,36 @@ current version (shown in the app's main window) is sourced from a single `<Vers
 `Directory.Build.props`. Bumps are manual and governed by Conventional Commits — see
 [ADR-0015](docs/adr/0015-versioning-and-commit-conventions.md).
 
+## Code signing
+
+> **Status:** release builds are **not yet code-signed**, so Windows SmartScreen may warn *"Unknown
+> publisher."* Until signing is enabled, click *More info → Run anyway* — see [Install](#install) and
+> [ADR-0009](docs/adr/0009-distribution-and-signing.md). Enrolment in the SignPath Foundation OSS
+> program is the planned path ([docs/code-signing.md](docs/code-signing.md)).
+
+### Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+**Privacy:** This program will not transfer any information to other networked systems unless
+specifically requested by the user or operator of the program. SysGreen's usage data is stored
+**locally only** and is never uploaded (see [ADR-0012](docs/adr/0012-privacy-and-telemetry-stance.md)).
+
+**Roles**
+
+- **Committers & reviewers:** [@xer4yx](https://github.com/xer4yx)
+- **Approvers:** [@xer4yx](https://github.com/xer4yx)
+
 ## Documentation
 
 - [`CONTEXT.md`](CONTEXT.md) — the ubiquitous language / glossary (read this first).
 - [`docs/adr/`](docs/adr) — Architecture Decision Records (0001–0015).
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to build, test, run, and commit.
+- [`SECURITY.md`](SECURITY.md) — how to report a vulnerability.
+- [`docs/code-signing.md`](docs/code-signing.md) — SignPath Foundation enrolment + signing pipeline.
 
 ## License
 
-No license has been declared for this project yet.
+Licensed under the **[Apache License 2.0](LICENSE)** — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Contributions are accepted under the same license (Apache-2.0 §5).

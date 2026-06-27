@@ -1,0 +1,47 @@
+name: CodeQL
+
+# Static security analysis of the C# code. CodeQL is free for public repositories; on a private repo
+# it needs GitHub Advanced Security. So the analyze job is gated behind the repo variable
+# ENABLE_CODE_SCANNING (set it to 'true' once the repo is public) to avoid red checks until then.
+
+on:
+  push:
+    branches: [ main, staging, dev ]
+  pull_request:
+    branches: [ main, staging, dev ]
+  schedule:
+    - cron: '27 3 * * 1'   # weekly, Monday 03:27 UTC
+
+jobs:
+  analyze:
+    name: Analyze (C#)
+    # Skipped until ENABLE_CODE_SCANNING=true (set as a repo variable when the repo is public).
+    if: vars.ENABLE_CODE_SCANNING == 'true'
+    runs-on: windows-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          build-mode: manual
+
+      - name: Build
+        run: dotnet build "SysGreen.slnx" -c Release
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:csharp"
