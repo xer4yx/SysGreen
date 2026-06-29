@@ -10,10 +10,14 @@ namespace SysGreen.Core.Recommendations;
 /// </summary>
 public sealed class RecommendationEngine : IRecommendationEngine
 {
-    private readonly int _abandonedThresholdDays;
+    private readonly Func<int> _abandonedThresholdDays;
 
-    public RecommendationEngine(int abandonedThresholdDays = 30) =>
+    /// <summary>Reads the current Abandoned threshold each time, so a Settings change applies live.</summary>
+    public RecommendationEngine(Func<int> abandonedThresholdDays) =>
         _abandonedThresholdDays = abandonedThresholdDays;
+
+    public RecommendationEngine(int abandonedThresholdDays = 30)
+        : this(() => abandonedThresholdDays) { }
 
     public IReadOnlyList<Recommendation> Recommend(
         IReadOnlyList<ManageableItem> items,
@@ -39,7 +43,7 @@ public sealed class RecommendationEngine : IRecommendationEngine
                 usageByName.TryGetValue(ExecutableFileName(path), out record);
 
             bool staticEvidence = isOverhead;
-            bool habitEvidence = record is not null && record.IsAbandoned(nowUtc, _abandonedThresholdDays);
+            bool habitEvidence = record is not null && record.IsAbandoned(nowUtc, _abandonedThresholdDays());
             if (!staticEvidence && !habitEvidence) continue;
 
             var source = staticEvidence && habitEvidence ? RecommendationSource.Both

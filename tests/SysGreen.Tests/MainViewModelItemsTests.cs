@@ -100,6 +100,31 @@ public class MainViewModelItemsTests
     }
 
     [Fact]
+    public void A_disabled_row_can_be_enabled()
+    {
+        var row = Build([Entry("Old", AutostartState.Disabled)]).Vm.AllItemGroups.Single().Items.Single();
+        Assert.True(row.CanEnable);
+    }
+
+    [Fact]
+    public void An_enabled_row_cannot_be_enabled()
+    {
+        var row = Build([Entry("Spotify")]).Vm.AllItemGroups.Single().Items.Single();
+        Assert.False(row.CanEnable);
+    }
+
+    [Fact]
+    public void Enabling_a_row_applies_an_enable_for_that_item()
+    {
+        var b = Build([Entry("Old", AutostartState.Disabled)]);
+
+        b.Vm.AllItemGroups.Single().Items.Single().EnableCommand.Execute(null);
+
+        b.Apply.Received(1).Apply(Arg.Is<IReadOnlyList<PendingChange>>(
+            c => c.Count == 1 && c[0].Entry.DisplayName == "Old" && c[0].Action == ChangeAction.Enable));
+    }
+
+    [Fact]
     public void Disabling_a_group_disables_every_enabled_item_in_it()
     {
         var b = Build([Entry("Spotify"), Entry("Deezer")]);

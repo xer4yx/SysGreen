@@ -128,4 +128,5 @@ public sealed record ManageableItem(
 {
     public bool IsRunning => RunningProcess is not null;
     public bool CanDisable => Autostart is { State: AutostartState.Enabled };
+    public bool CanEnable => Autostart is { State: AutostartState.Disabled };
 }
