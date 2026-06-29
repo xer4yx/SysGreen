@@ -108,6 +108,8 @@ public partial class App : Application
         services.AddSingleton(sp => new SettingsRepository(sp.GetRequiredService<IConnectionFactory>()));
         services.AddSingleton<Core.Usage.ITrackingSettings>(sp => sp.GetRequiredService<SettingsRepository>());
         services.AddSingleton<Core.Usage.IOnboardingState>(sp => sp.GetRequiredService<SettingsRepository>());
+        services.AddSingleton<Core.Usage.IDataRetentionSettings>(sp => sp.GetRequiredService<SettingsRepository>());
+        services.AddSingleton<Core.Usage.IDataStoreReset>(sp => new DataStoreReset(sp.GetRequiredService<IConnectionFactory>()));
 
         // Platform providers (ADR-0008 / ADR-0011)
         services.AddSingleton<IExecutablePublisherReader, AuthenticodePublisherReader>();
@@ -181,6 +183,8 @@ public partial class App : Application
 
         // UI
         services.AddTransient<OnboardingViewModel>();
+        services.AddTransient<SettingsViewModel>();
+        services.AddSingleton<Func<SettingsViewModel>>(sp => sp.GetRequiredService<SettingsViewModel>);
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
 

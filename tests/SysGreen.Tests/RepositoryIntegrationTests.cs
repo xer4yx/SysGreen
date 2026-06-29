@@ -131,6 +131,23 @@ public sealed class RepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Reset_clears_every_user_data_table()
+    {
+        new UsageRepository(_factory).RecordLaunch(@"C:\x\app.exe", DateTime.UtcNow);
+        new ChangeRecordRepository(_factory).Add(new ChangeRecord(
+            "id", "i", "App", ChangeAction.Disable, "Enabled", "Disabled", "m", DateTime.UtcNow, true, null));
+        new OverrideRepository(_factory).Set(new UserOverride("app.exe", Purpose.Media, NeverRecommend: true));
+        new SettingsRepository(_factory).MarkFirstRunComplete();
+
+        new DataStoreReset(_factory).Reset();
+
+        Assert.Empty(new UsageRepository(_factory).GetAll());
+        Assert.Empty(new ChangeRecordRepository(_factory).GetRecent());
+        Assert.Null(new OverrideRepository(_factory).Get("app.exe"));
+        Assert.False(new SettingsRepository(_factory).FirstRunComplete); // settings wiped → onboarding again
+    }
+
+    [Fact]
     public void An_override_with_no_purpose_round_trips_as_null()
     {
         new OverrideRepository(_factory).Set(new UserOverride("foo.exe", Purpose: null, NeverRecommend: true));
