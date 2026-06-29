@@ -7,7 +7,7 @@
     <Company>SysGreen</Company>
     <!-- Single source of truth for the version (ADR-0015). Bump manually per Conventional Commits:
          feat -> minor, fix/perf -> patch (held below 1.0 until the first signed public release). -->
-    <Version>0.21.0</Version>
+    <Version>0.21.1</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
