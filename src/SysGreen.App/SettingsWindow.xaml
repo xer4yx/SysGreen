@@ -69,6 +69,19 @@
                     </DockPanel>
                 </Border>
 
+                <!-- Uninstall (ADR-0017 option C: choose keep/delete here, then launch the uninstaller) -->
+                <Border Style="{StaticResource Section}">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Uninstall SysGreen…" Padding="10,3"
+                                VerticalAlignment="Top" Click="Uninstall_Click" />
+                        <StackPanel>
+                            <TextBlock Text="Uninstall SysGreen" FontWeight="SemiBold" />
+                            <TextBlock Style="{StaticResource Hint}"
+                                       Text="Removes SysGreen from this PC. You'll choose whether to keep or delete your saved data first." />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
                 <!-- Coming soon (Phase 5) -->
                 <TextBlock Text="Coming soon" FontWeight="SemiBold" Foreground="Gray" Margin="2,4,0,6" />
 
@@ -82,14 +95,6 @@
                         <TextBlock Style="{StaticResource Hint}"
                                    Text="Choose how many days of no use marks an app as abandoned (default 30)." />
                     </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource Section}">
-                    <DockPanel>
-                        <TextBlock Text="Feature coming soon…" Style="{StaticResource ComingSoon}" DockPanel.Dock="Right" />
-                        <Button Content="Uninstall SysGreen…" Padding="10,3" IsEnabled="False"
-                                HorizontalAlignment="Left" DockPanel.Dock="Left" />
-                    </DockPanel>
                 </Border>
 
                 <Border Style="{StaticResource Section}">

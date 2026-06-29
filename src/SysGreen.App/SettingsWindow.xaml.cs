@@ -28,4 +28,28 @@ public partial class SettingsWindow : Window
         if (confirm == MessageBoxResult.Yes && DataContext is SettingsViewModel vm)
             vm.ResetDataCommand.Execute(null);
     }
+
+    private void Uninstall_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm) return;
+
+        // Present the keep/delete choice in a surface we control (ADR-0017 option C):
+        // Yes = uninstall and keep data, No = uninstall and delete data, Cancel = stay installed.
+        var choice = MessageBox.Show(
+            this,
+            "This will uninstall SysGreen from this PC.\n\n" +
+            "Keep your saved data (history and settings)?\n\n" +
+            "Yes — uninstall and keep my data\n" +
+            "No — uninstall and delete my data\n" +
+            "Cancel — don't uninstall",
+            "Uninstall SysGreen",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Warning);
+
+        switch (choice)
+        {
+            case MessageBoxResult.Yes: vm.Uninstall(keepData: true); break;
+            case MessageBoxResult.No: vm.Uninstall(keepData: false); break;
+        }
+    }
 }

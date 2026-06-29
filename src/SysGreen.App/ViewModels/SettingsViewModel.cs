@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SysGreen.App.Services;
 using SysGreen.Core.Usage;
 
 namespace SysGreen.App.ViewModels;
@@ -13,6 +14,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ITrackingSettings _tracking;
     private readonly IDataRetentionSettings _retention;
     private readonly IDataStoreReset _reset;
+    private readonly IAppUninstaller _uninstaller;
 
     [ObservableProperty]
     private bool _launchTrackingEnabled;
@@ -24,13 +26,25 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string AppVersion => AppInfo.DisplayVersion;
 
     public SettingsViewModel(
-        ITrackingSettings tracking, IDataRetentionSettings retention, IDataStoreReset reset)
+        ITrackingSettings tracking, IDataRetentionSettings retention, IDataStoreReset reset,
+        IAppUninstaller uninstaller)
     {
         _tracking = tracking;
         _retention = retention;
         _reset = reset;
+        _uninstaller = uninstaller;
         _launchTrackingEnabled = tracking.LaunchTrackingEnabled; // field assignment: don't persist on load
         _keepDataOnUninstall = retention.KeepDataOnUninstall;
+    }
+
+    /// <summary>
+    /// Records the user's keep/delete choice (ADR-0017), then launches the uninstaller. The window
+    /// presents the choice and confirms before calling this — the method itself just commits and goes.
+    /// </summary>
+    public void Uninstall(bool keepData)
+    {
+        _retention.SetKeepDataOnUninstall(keepData);
+        _uninstaller.Uninstall();
     }
 
     partial void OnLaunchTrackingEnabledChanged(bool value) => _tracking.SetLaunchTrackingEnabled(value);

@@ -181,6 +181,10 @@ public partial class App : Application
         services.AddSingleton<IUpdateService>(_ =>
             new VelopackUpdateService("https://github.com/xer4yx/SysGreen"));
 
+        // In-app uninstall (ADR-0017): launches the Velopack uninstaller; the uninstall hook then
+        // honors the keep/delete choice. No-op in a non-Velopack (dev) run.
+        services.AddSingleton<IAppUninstaller, VelopackUninstaller>();
+
         // UI
         services.AddTransient<OnboardingViewModel>();
         services.AddTransient<SettingsViewModel>();

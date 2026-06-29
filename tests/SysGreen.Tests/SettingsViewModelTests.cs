@@ -1,4 +1,5 @@
 using NSubstitute;
+using SysGreen.App.Services;
 using SysGreen.App.ViewModels;
 using SysGreen.Core.Usage;
 
@@ -7,14 +8,15 @@ namespace SysGreen.Tests;
 public class SettingsViewModelTests
 {
     private static (SettingsViewModel Vm, ITrackingSettings Tracking, IDataRetentionSettings Retention,
-        IDataStoreReset Reset) Build(bool tracking = true, bool keep = true)
+        IDataStoreReset Reset, IAppUninstaller Uninstaller) Build(bool tracking = true, bool keep = true)
     {
         var t = Substitute.For<ITrackingSettings>();
         t.LaunchTrackingEnabled.Returns(tracking);
         var r = Substitute.For<IDataRetentionSettings>();
         r.KeepDataOnUninstall.Returns(keep);
         var reset = Substitute.For<IDataStoreReset>();
-        return (new SettingsViewModel(t, r, reset), t, r, reset);
+        var uninstaller = Substitute.For<IAppUninstaller>();
+        return (new SettingsViewModel(t, r, reset, uninstaller), t, r, reset, uninstaller);
     }
 
     [Fact]
@@ -22,7 +24,7 @@ public class SettingsViewModelTests
     {
         // True is discriminating: ObservableProperty bools default to false, so reading true proves
         // the VM loaded from the settings rather than leaving the field at its default.
-        var (vm, _, _, _) = Build(tracking: true, keep: true);
+        var (vm, _, _, _, _) = Build(tracking: true, keep: true);
 
         Assert.True(vm.LaunchTrackingEnabled);
         Assert.True(vm.KeepDataOnUninstall);
@@ -31,7 +33,7 @@ public class SettingsViewModelTests
     [Fact]
     public void Toggling_launch_tracking_persists_the_choice()
     {
-        var (vm, tracking, _, _) = Build(tracking: true);
+        var (vm, tracking, _, _, _) = Build(tracking: true);
 
         vm.LaunchTrackingEnabled = false;
 
@@ -41,7 +43,7 @@ public class SettingsViewModelTests
     [Fact]
     public void Toggling_keep_data_on_uninstall_persists_the_choice()
     {
-        var (vm, _, retention, _) = Build(keep: true);
+        var (vm, _, retention, _, _) = Build(keep: true);
 
         vm.KeepDataOnUninstall = false;
 
@@ -51,10 +53,32 @@ public class SettingsViewModelTests
     [Fact]
     public void Resetting_data_clears_the_store()
     {
-        var (vm, _, _, reset) = Build();
+        var (vm, _, _, reset, _) = Build();
 
         vm.ResetDataCommand.Execute(null);
 
         reset.Received(1).Reset();
+    }
+
+    [Fact]
+    public void Uninstalling_with_keep_persists_the_choice_then_launches_the_uninstaller()
+    {
+        var (vm, _, retention, _, uninstaller) = Build();
+
+        vm.Uninstall(keepData: true);
+
+        retention.Received(1).SetKeepDataOnUninstall(true);
+        uninstaller.Received(1).Uninstall();
+    }
+
+    [Fact]
+    public void Uninstalling_with_delete_records_the_delete_choice_before_uninstalling()
+    {
+        var (vm, _, retention, _, uninstaller) = Build();
+
+        vm.Uninstall(keepData: false);
+
+        retention.Received(1).SetKeepDataOnUninstall(false);
+        uninstaller.Received(1).Uninstall();
     }
 }
