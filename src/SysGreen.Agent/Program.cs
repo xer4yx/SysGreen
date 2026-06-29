@@ -19,6 +19,11 @@ static class Program
     [STAThread]
     static void Main()
     {
+        // Relocate the Data Store out of the (uninstall-deleted) install root before the store is
+        // opened (ADR-0016). The Agent autostarts at logon and can reach this before the App, so it
+        // must run the same one-time, idempotent migration rather than rely on the App going first.
+        DataStoreMigration.EnsureDefaultMigrated();
+
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApplicationContext());
     }

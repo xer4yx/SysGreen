@@ -120,6 +120,17 @@ public sealed class RepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Keep_data_on_uninstall_defaults_on_and_the_choice_persists()
+    {
+        var settings = new SettingsRepository(_factory);
+        Assert.True(settings.KeepDataOnUninstall); // keep by default (ADR-0017)
+
+        settings.SetKeepDataOnUninstall(false);
+
+        Assert.False(new SettingsRepository(_factory).KeepDataOnUninstall); // persists across instances
+    }
+
+    [Fact]
     public void An_override_with_no_purpose_round_trips_as_null()
     {
         new OverrideRepository(_factory).Set(new UserOverride("foo.exe", Purpose: null, NeverRecommend: true));

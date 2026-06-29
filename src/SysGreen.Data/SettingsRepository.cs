@@ -11,6 +11,7 @@ public sealed class SettingsRepository : ITrackingSettings, IOnboardingState
 {
     private const string LaunchTrackingKey = "launch_tracking_enabled";
     private const string FirstRunCompleteKey = "first_run_complete";
+    private const string KeepDataOnUninstallKey = "keep_data_on_uninstall";
 
     private readonly IConnectionFactory _factory;
 
@@ -23,6 +24,11 @@ public sealed class SettingsRepository : ITrackingSettings, IOnboardingState
     public bool FirstRunComplete => ReadBool(FirstRunCompleteKey, defaultValue: false);
 
     public void MarkFirstRunComplete() => WriteBool(FirstRunCompleteKey, true);
+
+    /// <summary>Whether the Data Store is kept when SysGreen is uninstalled. Keep by default (ADR-0017).</summary>
+    public bool KeepDataOnUninstall => ReadBool(KeepDataOnUninstallKey, defaultValue: true);
+
+    public void SetKeepDataOnUninstall(bool keep) => WriteBool(KeepDataOnUninstallKey, keep);
 
     private bool ReadBool(string key, bool defaultValue)
     {
