@@ -82,3 +82,11 @@ A user-asserted classification that takes precedence over the Knowledge Base —
 
 **Passive Background Value**:
 A property of some items (e.g., OneDrive sync, backup agents) that do useful work *while running even if the user never opens their window*. Flagged in the KB so the habit engine knows "Abandoned ≠ useless here" and won't wrongly recommend disabling them.
+
+**Data Store**:
+The local-only SQLite store of everything the user accumulates — Usage, Change Records, Overrides, settings, and Policy Acceptance. Deliberately kept **outside** the app's install directory so it survives an update or uninstall; its lifetime is the *user's*, not the *install's*. Distinct from the shipped Knowledge Base (read-only, lives with the install).
+_Avoid_: conflating with the install folder or the Knowledge Base.
+
+**Policy Acceptance**:
+A record that the user has read and accepted a specific **version** of SysGreen's terms/privacy policy. The acceptance gate re-appears only when the current policy version exceeds the accepted one — not on every install or update. Distinct from the launch-tracking **consent**, which is a toggleable preference, not a gate.
+_Avoid_: conflating with the launch-tracking consent; "terms" used loosely for the toggle.
