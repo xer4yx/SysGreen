@@ -161,6 +161,30 @@ public sealed partial class MainViewModel : ObservableObject
         Refresh();
     }
 
+    /// <summary>
+    /// Re-enables the given items in one batch. The inverse of <see cref="DisableItems"/>; routes
+    /// <see cref="ChangeAction.Enable"/> through the same Apply pipeline, so a disabled HKLM/task item
+    /// still elevates and creates a restore point exactly as an Undo does (ADR-0005).
+    /// </summary>
+    public void EnableItems(IReadOnlyList<ManageableItem> items)
+    {
+        var changes = items
+            .Where(i => i.Autostart is not null && i.CanEnable)
+            .Select(i => new PendingChange(i.Autostart!, ChangeAction.Enable))
+            .ToList();
+        if (changes.Count == 0)
+        {
+            ApplyStatus = "Nothing to enable.";
+            return;
+        }
+
+        var result = _apply.Apply(changes);
+        ApplyStatus = ProblemMessage(result)
+            ?? $"Enabled {result.SucceededCount} of {changes.Count}" +
+               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        Refresh();
+    }
+
     /// <summary>Records a user Override that relabels the item's Purpose (CONTEXT.md "Override").</summary>
     public void SetItemPurpose(ManageableItem item, Purpose purpose)
     {
@@ -268,7 +292,7 @@ public sealed partial class MainViewModel : ObservableObject
                 g.Key, g.OrderBy(i => i.DisplayName).Select(MakeItemVm).ToList(), DisableItems));
 
     private AllItemViewModel MakeItemVm(ManageableItem item) =>
-        new(item, i => DisableItems([i]), SetItemPurpose, NeverRecommend, EndTask);
+        new(item, i => DisableItems([i]), i => EnableItems([i]), SetItemPurpose, NeverRecommend, EndTask);
 
     private List<ManageableItem> BuildItems(
         IReadOnlyList<AutostartEntry> entries, IReadOnlyList<ProcessInfo> processes)

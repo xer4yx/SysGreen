@@ -13,6 +13,7 @@ namespace SysGreen.App.ViewModels;
 public sealed partial class AllItemViewModel : ObservableObject
 {
     private readonly Action<ManageableItem> _disable;
+    private readonly Action<ManageableItem> _enable;
     private readonly Action<ManageableItem, Purpose> _setPurpose;
     private readonly Action<ManageableItem> _neverRecommend;
     private readonly Action<ManageableItem> _endTask;
@@ -20,6 +21,9 @@ public sealed partial class AllItemViewModel : ObservableObject
     public ManageableItem Item { get; }
     public string DisplayText { get; }
     public bool CanDisable => Item.CanDisable;
+
+    /// <summary>True for an already-disabled item — the row offers Enable in the same slot (CONTEXT.md).</summary>
+    public bool CanEnable => Item.CanEnable;
 
     /// <summary>End Task is only available for a live process (CONTEXT.md "Process").</summary>
     public bool CanEndTask => Item.IsRunning;
@@ -32,12 +36,14 @@ public sealed partial class AllItemViewModel : ObservableObject
     public AllItemViewModel(
         ManageableItem item,
         Action<ManageableItem> disable,
+        Action<ManageableItem> enable,
         Action<ManageableItem, Purpose> setPurpose,
         Action<ManageableItem> neverRecommend,
         Action<ManageableItem> endTask)
     {
         Item = item;
         _disable = disable;
+        _enable = enable;
         _setPurpose = setPurpose;
         _neverRecommend = neverRecommend;
         _endTask = endTask;
@@ -55,6 +61,9 @@ public sealed partial class AllItemViewModel : ObservableObject
 
     [RelayCommand(CanExecute = nameof(CanDisable))]
     private void Disable() => _disable(Item);
+
+    [RelayCommand(CanExecute = nameof(CanEnable))]
+    private void Enable() => _enable(Item);
 
     [RelayCommand]
     private void NeverRecommend() => _neverRecommend(Item);
