@@ -52,4 +52,10 @@ public partial class SettingsWindow : Window
             case MessageBoxResult.No: vm.Uninstall(keepData: false); break;
         }
     }
+
+    private void ViewPolicy_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel vm)
+            new PolicyWindow(vm.PolicyText) { Owner = this }.Show();
+    }
 }

@@ -15,6 +15,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IDataRetentionSettings _retention;
     private readonly IDataStoreReset _reset;
     private readonly IAppUninstaller _uninstaller;
+    private readonly IThresholdSettings _threshold;
+    private readonly IPolicyProvider _policy;
 
     [ObservableProperty]
     private bool _launchTrackingEnabled;
@@ -22,19 +24,28 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _keepDataOnUninstall;
 
+    [ObservableProperty]
+    private int _abandonedThresholdDays;
+
     /// <summary>The app's display version (vX.Y.Z), shown read-only in Settings — ADR-0015.</summary>
     public string AppVersion => AppInfo.DisplayVersion;
 
+    /// <summary>The Privacy Policy &amp; Terms text, shown by the "View policy" action (ADR-0018).</summary>
+    public string PolicyText => _policy.Text;
+
     public SettingsViewModel(
         ITrackingSettings tracking, IDataRetentionSettings retention, IDataStoreReset reset,
-        IAppUninstaller uninstaller)
+        IAppUninstaller uninstaller, IThresholdSettings threshold, IPolicyProvider policy)
     {
         _tracking = tracking;
         _retention = retention;
         _reset = reset;
         _uninstaller = uninstaller;
+        _threshold = threshold;
+        _policy = policy;
         _launchTrackingEnabled = tracking.LaunchTrackingEnabled; // field assignment: don't persist on load
         _keepDataOnUninstall = retention.KeepDataOnUninstall;
+        _abandonedThresholdDays = threshold.AbandonedThresholdDays;
     }
 
     /// <summary>
@@ -50,6 +61,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnLaunchTrackingEnabledChanged(bool value) => _tracking.SetLaunchTrackingEnabled(value);
 
     partial void OnKeepDataOnUninstallChanged(bool value) => _retention.SetKeepDataOnUninstall(value);
+
+    partial void OnAbandonedThresholdDaysChanged(int value) => _threshold.SetAbandonedThresholdDays(value);
 
     /// <summary>
     /// Clears the Data Store in place (ADR-0017). The window confirms with the user before invoking

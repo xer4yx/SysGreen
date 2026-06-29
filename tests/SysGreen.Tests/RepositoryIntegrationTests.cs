@@ -131,6 +131,28 @@ public sealed class RepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Accepted_policy_version_defaults_to_zero_and_persists()
+    {
+        var settings = new SettingsRepository(_factory);
+        Assert.Equal(0, settings.AcceptedPolicyVersion); // nothing accepted yet (ADR-0018)
+
+        settings.SetAcceptedPolicyVersion(2);
+
+        Assert.Equal(2, new SettingsRepository(_factory).AcceptedPolicyVersion); // persists across instances
+    }
+
+    [Fact]
+    public void Abandoned_threshold_defaults_to_30_days_and_persists()
+    {
+        var settings = new SettingsRepository(_factory);
+        Assert.Equal(30, settings.AbandonedThresholdDays); // CONTEXT.md default
+
+        settings.SetAbandonedThresholdDays(45);
+
+        Assert.Equal(45, new SettingsRepository(_factory).AbandonedThresholdDays); // persists across instances
+    }
+
+    [Fact]
     public void Reset_clears_every_user_data_table()
     {
         new UsageRepository(_factory).RecordLaunch(@"C:\x\app.exe", DateTime.UtcNow);
