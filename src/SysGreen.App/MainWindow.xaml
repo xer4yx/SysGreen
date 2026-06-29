@@ -24,6 +24,8 @@
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
             <Image Source="pack://application:,,,/Assets/logo.ico" Width="26" Height="26"
                    DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" />
+            <Button DockPanel.Dock="Right" Content="⚙ Settings" Padding="10,3" VerticalAlignment="Center"
+                    Click="OpenSettings_Click" ToolTip="Open SysGreen settings." />
             <TextBlock Text="SysGreen" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
         </DockPanel>
         <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}"
@@ -83,7 +85,13 @@
                                                                     ToolTip="Close it now for instant RAM relief — it returns next time it starts." />
                                                             <Button DockPanel.Dock="Right" Content="Disable"
                                                                     Padding="8,1" Margin="4,0,0,0"
-                                                                    Command="{Binding DisableCommand}" />
+                                                                    Command="{Binding DisableCommand}"
+                                                                    Visibility="{Binding CanDisable, Converter={StaticResource BoolToVis}}" />
+                                                            <Button DockPanel.Dock="Right" Content="Enable"
+                                                                    Padding="8,1" Margin="4,0,0,0"
+                                                                    Command="{Binding EnableCommand}"
+                                                                    ToolTip="Allow this to load again at startup."
+                                                                    Visibility="{Binding CanEnable, Converter={StaticResource BoolToVis}}" />
                                                             <ComboBox DockPanel.Dock="Right" Width="130" Margin="4,0,0,0"
                                                                       ItemsSource="{Binding Purposes}"
                                                                       SelectedItem="{Binding SelectedPurpose}"

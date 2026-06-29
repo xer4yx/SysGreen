@@ -1,4 +1,5 @@
 using System;
+using SysGreen.Data;
 using Velopack;
 
 namespace SysGreen.App;
@@ -13,10 +14,36 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        VelopackApp.Build().Run();
+        // On uninstall, Velopack runs this hook then exits — so the lines below are reached only on a
+        // normal launch. The hook honors the user's data-retention choice (ADR-0017).
+        VelopackApp.Build()
+            .OnBeforeUninstallFastCallback(_ => CleanUpDataStoreOnUninstall())
+            .Run();
+
+        // Relocate the Data Store out of the (uninstall-deleted) install root before anything opens it
+        // (ADR-0016). One-time, idempotent, and shared with the Agent, which may run this first.
+        DataStoreMigration.EnsureDefaultMigrated();
 
         var app = new App();
         app.InitializeComponent();
         app.Run();
+    }
+
+    /// <summary>
+    /// Uninstall cleanup (ADR-0017): the Data Store lives outside the install root (ADR-0016), so
+    /// Velopack never deletes it — "keep" (the default) is a no-op and only an explicit "delete" wipes
+    /// it. Reading the choice is fail-safe: any error leaves the data in place.
+    /// </summary>
+    private static void CleanUpDataStoreOnUninstall()
+    {
+        var keep = true;
+        try
+        {
+            var factory = new SqliteConnectionFactory(SqliteConnectionFactory.DefaultDatabasePath());
+            keep = new SettingsRepository(factory).KeepDataOnUninstall;
+        }
+        catch { /* settings unreadable during uninstall — fail safe to keep */ }
+
+        DataStoreUninstall.Apply(keep, SqliteConnectionFactory.DefaultDataDirectory());
     }
 }

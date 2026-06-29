@@ -120,6 +120,56 @@ public sealed class RepositoryIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Keep_data_on_uninstall_defaults_on_and_the_choice_persists()
+    {
+        var settings = new SettingsRepository(_factory);
+        Assert.True(settings.KeepDataOnUninstall); // keep by default (ADR-0017)
+
+        settings.SetKeepDataOnUninstall(false);
+
+        Assert.False(new SettingsRepository(_factory).KeepDataOnUninstall); // persists across instances
+    }
+
+    [Fact]
+    public void Accepted_policy_version_defaults_to_zero_and_persists()
+    {
+        var settings = new SettingsRepository(_factory);
+        Assert.Equal(0, settings.AcceptedPolicyVersion); // nothing accepted yet (ADR-0018)
+
+        settings.SetAcceptedPolicyVersion(2);
+
+        Assert.Equal(2, new SettingsRepository(_factory).AcceptedPolicyVersion); // persists across instances
+    }
+
+    [Fact]
+    public void Abandoned_threshold_defaults_to_30_days_and_persists()
+    {
+        var settings = new SettingsRepository(_factory);
+        Assert.Equal(30, settings.AbandonedThresholdDays); // CONTEXT.md default
+
+        settings.SetAbandonedThresholdDays(45);
+
+        Assert.Equal(45, new SettingsRepository(_factory).AbandonedThresholdDays); // persists across instances
+    }
+
+    [Fact]
+    public void Reset_clears_every_user_data_table()
+    {
+        new UsageRepository(_factory).RecordLaunch(@"C:\x\app.exe", DateTime.UtcNow);
+        new ChangeRecordRepository(_factory).Add(new ChangeRecord(
+            "id", "i", "App", ChangeAction.Disable, "Enabled", "Disabled", "m", DateTime.UtcNow, true, null));
+        new OverrideRepository(_factory).Set(new UserOverride("app.exe", Purpose.Media, NeverRecommend: true));
+        new SettingsRepository(_factory).MarkFirstRunComplete();
+
+        new DataStoreReset(_factory).Reset();
+
+        Assert.Empty(new UsageRepository(_factory).GetAll());
+        Assert.Empty(new ChangeRecordRepository(_factory).GetRecent());
+        Assert.Null(new OverrideRepository(_factory).Get("app.exe"));
+        Assert.False(new SettingsRepository(_factory).FirstRunComplete); // settings wiped → onboarding again
+    }
+
+    [Fact]
     public void An_override_with_no_purpose_round_trips_as_null()
     {
         new OverrideRepository(_factory).Set(new UserOverride("foo.exe", Purpose: null, NeverRecommend: true));

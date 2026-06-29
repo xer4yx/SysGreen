@@ -32,12 +32,15 @@ public partial class App : Application
         // Ensure the local SQLite schema exists (ADR-0006).
         _services.GetRequiredService<DatabaseBootstrapper>().EnsureCreated();
 
-        // First run shows the welcome/consent screen before anything is tracked (ADR-0012/0014);
-        // afterwards (or on later runs) go straight to the main experience.
-        if (_services.GetRequiredService<Core.Usage.IOnboardingState>().FirstRunComplete)
-            ShowMainExperience();
-        else
+        // Show the welcome / policy-acceptance gate when the user hasn't accepted the current policy
+        // version (ADR-0018) — that covers first run (accepted 0 < current) and any later version bump.
+        // On first run it also carries the launch-tracking consent (ADR-0012/0014).
+        var acceptance = _services.GetRequiredService<Core.Usage.IPolicyAcceptance>();
+        var policy = _services.GetRequiredService<IPolicyProvider>();
+        if (policy.CurrentVersion > acceptance.AcceptedPolicyVersion)
             ShowOnboarding();
+        else
+            ShowMainExperience();
     }
 
     private void ShowOnboarding()
@@ -108,6 +111,10 @@ public partial class App : Application
         services.AddSingleton(sp => new SettingsRepository(sp.GetRequiredService<IConnectionFactory>()));
         services.AddSingleton<Core.Usage.ITrackingSettings>(sp => sp.GetRequiredService<SettingsRepository>());
         services.AddSingleton<Core.Usage.IOnboardingState>(sp => sp.GetRequiredService<SettingsRepository>());
+        services.AddSingleton<Core.Usage.IDataRetentionSettings>(sp => sp.GetRequiredService<SettingsRepository>());
+        services.AddSingleton<Core.Usage.IPolicyAcceptance>(sp => sp.GetRequiredService<SettingsRepository>());
+        services.AddSingleton<Core.Usage.IThresholdSettings>(sp => sp.GetRequiredService<SettingsRepository>());
+        services.AddSingleton<Core.Usage.IDataStoreReset>(sp => new DataStoreReset(sp.GetRequiredService<IConnectionFactory>()));
 
         // Platform providers (ADR-0008 / ADR-0011)
         services.AddSingleton<IExecutablePublisherReader, AuthenticodePublisherReader>();
@@ -172,15 +179,27 @@ public partial class App : Application
         services.AddSingleton<Classifier>();
         services.AddSingleton<IClassifier>(sp => new OverridingClassifier(
             sp.GetRequiredService<Classifier>(), sp.GetRequiredService<IOverrideStore>()));
-        services.AddSingleton<IRecommendationEngine>(_ => new RecommendationEngine());
+        // The engine reads the user's Abandoned threshold (Settings) live on each refresh (ADR-0007).
+        services.AddSingleton<IRecommendationEngine>(sp => new RecommendationEngine(
+            () => sp.GetRequiredService<Core.Usage.IThresholdSettings>().AbandonedThresholdDays));
+
+        // Privacy Policy & Terms text + version, parsed from the shipped policy.md (ADR-0018).
+        services.AddSingleton<IPolicyProvider>(_ =>
+            new FilePolicyProvider(Path.Combine(AppContext.BaseDirectory, "policy.md")));
 
         // Self-update via Velopack reading GitHub Releases (ADR-0009). No-op when not a Velopack
         // install, so it's harmless in dev runs.
         services.AddSingleton<IUpdateService>(_ =>
             new VelopackUpdateService("https://github.com/xer4yx/SysGreen"));
 
+        // In-app uninstall (ADR-0017): launches the Velopack uninstaller; the uninstall hook then
+        // honors the keep/delete choice. No-op in a non-Velopack (dev) run.
+        services.AddSingleton<IAppUninstaller, VelopackUninstaller>();
+
         // UI
         services.AddTransient<OnboardingViewModel>();
+        services.AddTransient<SettingsViewModel>();
+        services.AddSingleton<Func<SettingsViewModel>>(sp => sp.GetRequiredService<SettingsViewModel>);
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<MainWindow>();
 
