@@ -61,7 +61,7 @@ public class MainViewModelHistoryTests
     }
 
     [Fact]
-    public void Re_enabling_a_history_row_reverses_just_that_one_record()
+    public async Task Re_enabling_a_history_row_reverses_just_that_one_record()
     {
         var history = Substitute.For<IChangeRecordRepository>();
         history.GetRecent(Arg.Any<int>()).Returns(new[] { Disabled("Spotify", "batch-A") });
@@ -70,14 +70,14 @@ public class MainViewModelHistoryTests
             .Returns(new ApplyResult(false, false, Array.Empty<ChangeRecord>()));
         var vm = BuildVm(history, reverser);
 
-        vm.History[0].Items[0].ReEnableCommand.Execute(null);
+        await vm.History[0].Items[0].ReEnableCommand.ExecuteAsync(null);
 
         reverser.Received(1).Reverse(Arg.Is<IReadOnlyList<ChangeRecord>>(
             r => r.Count == 1 && r[0].ItemName == "Spotify"));
     }
 
     [Fact]
-    public void Undoing_a_batch_reverses_every_record_in_it_at_once()
+    public async Task Undoing_a_batch_reverses_every_record_in_it_at_once()
     {
         var history = Substitute.For<IChangeRecordRepository>();
         history.GetRecent(Arg.Any<int>()).Returns(new[]
@@ -90,7 +90,7 @@ public class MainViewModelHistoryTests
             .Returns(new ApplyResult(false, false, Array.Empty<ChangeRecord>()));
         var vm = BuildVm(history, reverser);
 
-        vm.History[0].UndoCommand.Execute(null);
+        await vm.History[0].UndoCommand.ExecuteAsync(null);
 
         reverser.Received(1).Reverse(Arg.Is<IReadOnlyList<ChangeRecord>>(r => r.Count == 2));
     }

@@ -15,9 +15,9 @@ return new HelperRunner(BuildApplyService).Run(args);
 
 // Composed per job so the Helper writes to the *invoking user's* database (passed in the job),
 // not whichever account approved the elevation.
-static IApplyService BuildApplyService(string databasePath)
+static IApplyService BuildApplyService(ApplyJob job)
 {
-    var factory = new SqliteConnectionFactory(databasePath);
+    var factory = new SqliteConnectionFactory(job.DatabasePath);
     new DatabaseBootstrapper(factory).EnsureCreated(); // idempotent; the App normally created it first
     var clock = new SystemClock();
     // Dispatch per mechanism: StartupApproved flags for Run keys/Startup folders, the Task Scheduler
@@ -29,5 +29,9 @@ static IApplyService BuildApplyService(string databasePath)
         new BackgroundAppItemController(new BackgroundAppRegistryStore(), clock));
     var restorePoints = new RestorePointService(new WmiRestorePointApi());
     var changeLog = new ChangeRecordRepository(factory);
-    return new ApplyService(controller, changeLog, restorePoints, clock);
+    // Report live phases to a file the App polls, when it asked for progress (Topic B / Phase 6).
+    IApplyProgressSink progress = job.ProgressPath is { } path
+        ? new FileApplyProgressSink(path)
+        : NullApplyProgressSink.Instance;
+    return new ApplyService(controller, changeLog, restorePoints, clock, progress);
 }
