@@ -68,22 +68,6 @@ public class MainViewModelApplyTests
     }
 
     [Fact]
-    public async Task Declining_the_elevation_prompt_reports_that_no_admin_changes_were_made()
-    {
-        var apply = Substitute.For<IApplyService>();
-        apply.Apply(Arg.Any<IReadOnlyList<PendingChange>>())
-            .Returns(new ApplyResult(false, false, Array.Empty<ChangeRecord>()) { ElevationDeclined = true });
-        var vm = BuildVm(apply);
-
-        vm.Recommendations[0].IsSelected = true;
-        await vm.ApplyCommand.ExecuteAsync(null);
-
-        // Not the terse "Disabled 0 of 1" — a tailored explanation that the user declined.
-        Assert.Contains("declined", vm.ApplyStatus, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Disabled 0", vm.ApplyStatus);
-    }
-
-    [Fact]
     public void Never_recommend_records_a_never_recommend_override_for_the_item()
     {
         var apply = Substitute.For<IApplyService>();

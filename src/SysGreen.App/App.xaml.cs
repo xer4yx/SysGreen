@@ -200,6 +200,11 @@ public partial class App : Application
         // honors the keep/delete choice. No-op in a non-Velopack (dev) run.
         services.AddSingleton<IAppUninstaller, VelopackUninstaller>();
 
+        // In-app toasts (Topic C / Phase 7): the hand-rolled overlay host is the single instance the
+        // MainWindow binds to and the MainViewModel reports completed-action outcomes through.
+        services.AddSingleton<ToastService>();
+        services.AddSingleton<IToastService>(sp => sp.GetRequiredService<ToastService>());
+
         // UI
         services.AddTransient<OnboardingViewModel>();
         services.AddTransient<SettingsViewModel>();

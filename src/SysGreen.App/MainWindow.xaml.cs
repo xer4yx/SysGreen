@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using SysGreen.App.Services;
 using SysGreen.App.ViewModels;
 
 namespace SysGreen.App;
@@ -12,11 +13,14 @@ public partial class MainWindow : Window
 {
     private readonly Func<SettingsViewModel> _settingsViewModel;
 
-    public MainWindow(MainViewModel viewModel, Func<SettingsViewModel> settingsViewModel)
+    public MainWindow(MainViewModel viewModel, Func<SettingsViewModel> settingsViewModel, ToastService toasts)
     {
         InitializeComponent();
         DataContext = viewModel;
         _settingsViewModel = settingsViewModel;
+        // The overlay binds to the shared toast host's live collection (Topic C / Phase 7); the window's
+        // own DataContext stays the MainViewModel, so bind ItemsSource here rather than in XAML.
+        ToastHost.ItemsSource = toasts.Notifications;
     }
 
     private void OpenSettings_Click(object sender, RoutedEventArgs e) =>
