@@ -32,6 +32,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IOverrideStore _overrides;
     private readonly IItemController _controller;
     private readonly IUpdateService? _updateService;
+    private readonly IToastService _toasts;
 
     /// <summary>
     /// Shared busy signal + current phase for the header progress strip (Topic B / Phase 6). While an
@@ -41,12 +42,6 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _summary = "Loading…";
-
-    [ObservableProperty]
-    private string _applyStatus = "";
-
-    [ObservableProperty]
-    private string _historyStatus = "";
 
     [ObservableProperty]
     private bool _historyEmpty;
@@ -76,7 +71,8 @@ public sealed partial class MainViewModel : ObservableObject
         IOverrideStore overrides,
         IItemController controller,
         IUpdateService? updateService = null,
-        ApplyProgressRelay? progress = null)
+        ApplyProgressRelay? progress = null,
+        IToastService? toasts = null)
     {
         _autostart = autostart;
         _processes = processes;
@@ -89,6 +85,8 @@ public sealed partial class MainViewModel : ObservableObject
         _overrides = overrides;
         _controller = controller;
         _updateService = updateService;
+        // Completed-action feedback goes to toasts (Topic C / Phase 7); no-op when none is wired (tests).
+        _toasts = toasts ?? NullToastService.Instance;
         // Elevated applies stream phases in through the relay (no-op in-process); update the strip text.
         if (progress is not null)
             progress.ProgressReported += p => Busy.ProgressPhase = ApplyProgressText.Describe(p);
@@ -125,11 +123,11 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             _history.Add(_controller.EndTask(process));
-            ApplyStatus = $"Ended {item.DisplayName}. It returns next time it starts.";
+            _toasts.ShowSuccess($"Ended {item.DisplayName}. It returns next time it starts.");
         }
         catch (Exception ex)
         {
-            ApplyStatus = $"Couldn't end {item.DisplayName}: {ex.Message}";
+            _toasts.ShowError($"Couldn't end {item.DisplayName}: {ex.Message}");
         }
         Refresh();
     }
@@ -147,7 +145,7 @@ public sealed partial class MainViewModel : ObservableObject
         var existing = _overrides.Get(name);
         _overrides.Set(new UserOverride(name, existing?.Purpose, NeverRecommend: true));
 
-        ApplyStatus = $"Won't recommend {item.DisplayName} again.";
+        _toasts.ShowSuccess($"Won't recommend {item.DisplayName} again.");
         Refresh();
     }
 
@@ -160,14 +158,11 @@ public sealed partial class MainViewModel : ObservableObject
             .ToList();
         if (changes.Count == 0)
         {
-            ApplyStatus = "Nothing to disable.";
+            _toasts.ShowError("Nothing to disable.");
             return;
         }
 
-        var result = await RunApplyAsync(changes);
-        ApplyStatus = ProblemMessage(result)
-            ?? $"Disabled {result.SucceededCount} of {changes.Count}" +
-               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        Announce(await RunApplyAsync(changes), "Disabled", changes.Count);
         Refresh();
     }
 
@@ -184,14 +179,11 @@ public sealed partial class MainViewModel : ObservableObject
             .ToList();
         if (changes.Count == 0)
         {
-            ApplyStatus = "Nothing to enable.";
+            _toasts.ShowError("Nothing to enable.");
             return;
         }
 
-        var result = await RunApplyAsync(changes);
-        ApplyStatus = ProblemMessage(result)
-            ?? $"Enabled {result.SucceededCount} of {changes.Count}" +
-               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        Announce(await RunApplyAsync(changes), "Enabled", changes.Count);
         Refresh();
     }
 
@@ -248,7 +240,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         var existing = _overrides.Get(name);
         _overrides.Set(new UserOverride(name, purpose, existing?.NeverRecommend ?? false));
-        ApplyStatus = $"Set {item.DisplayName}'s purpose to {purpose}.";
+        _toasts.ShowSuccess($"Set {item.DisplayName}'s purpose to {purpose}.");
         Refresh();
     }
 
@@ -264,7 +256,7 @@ public sealed partial class MainViewModel : ObservableObject
             .ToList();
         if (selected.Count == 0)
         {
-            ApplyStatus = "Nothing selected.";
+            _toasts.ShowError("Nothing selected.");
             return;
         }
 
@@ -281,11 +273,38 @@ public sealed partial class MainViewModel : ObservableObject
         if (records.Count == 0) return;
 
         var result = await RunReverseAsync(records);
-        HistoryStatus = ProblemMessage(result)
-            ?? $"Reversed {result.SucceededCount} change{(result.SucceededCount == 1 ? "" : "s")}" +
-               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
-
+        if (ProblemMessage(result) is { } problem)
+            _toasts.ShowError(problem);
+        else
+        {
+            var msg = $"Reversed {result.SucceededCount} change{(result.SucceededCount == 1 ? "" : "s")}" +
+                      (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+            Announce(result.FailedCount > 0, msg);
+        }
         Refresh();
+    }
+
+    /// <summary>
+    /// Turns an Apply outcome into a toast (Topic C / Phase 7): the declined/aborted explanation as an
+    /// error, a clean run as a success, and a partial failure as an error (so it persists, not fades).
+    /// </summary>
+    private void Announce(ApplyResult result, string verb, int attempted)
+    {
+        if (ProblemMessage(result) is { } problem)
+        {
+            _toasts.ShowError(problem);
+            return;
+        }
+        var msg = $"{verb} {result.SucceededCount} of {attempted}" +
+                  (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        Announce(result.FailedCount > 0, msg);
+    }
+
+    /// <summary>Routes a finished-action message to the success or error channel.</summary>
+    private void Announce(bool isError, string message)
+    {
+        if (isError) _toasts.ShowError(message);
+        else _toasts.ShowSuccess(message);
     }
 
     /// <summary>The shared "nothing was applied" explanations for Apply and Undo, or null on success.</summary>
