@@ -56,7 +56,8 @@ public class MainViewModelBusyTests
 
         var running = vm.ApplyCommand.ExecuteAsync(null); // offloaded to Task.Run — returns immediately
 
-        Assert.True(SpinWait.SpinUntil(() => apply.Started, TimeSpan.FromSeconds(2)));
+        // Busy is raised synchronously (before the Task.Run await), so it's already set here even
+        // though the still-blocked apply may not yet have been scheduled onto a pool thread.
         Assert.True(vm.Busy.IsApplying);
         Assert.False(running.IsCompleted); // still applying — the call did not block
 
@@ -76,8 +77,8 @@ public class MainViewModelBusyTests
         Assert.True(group.Items.First().DisableCommand.CanExecute(null)); // enabled at rest
 
         var running = group.Items.First().DisableCommand.ExecuteAsync(null);
-        Assert.True(SpinWait.SpinUntil(() => apply.Started, TimeSpan.FromSeconds(2)));
 
+        // Busy is raised synchronously inside ExecuteAsync (before the Task.Run await).
         Assert.True(vm.Busy.IsApplying);
         Assert.False(vm.ApplyCommand.CanExecute(null));                       // Recommendations Apply gated
         Assert.False(group.Items.Last().DisableCommand.CanExecute(null));     // a sibling row gated
@@ -114,15 +115,14 @@ public class MainViewModelBusyTests
     }
 
     /// <summary>An <see cref="IApplyService"/> that blocks inside Apply until released, so a test can
-    /// observe the busy state while a "slow" apply is mid-flight.</summary>
+    /// observe the busy state while a "slow" apply is mid-flight. Releasing before the apply is even
+    /// scheduled is safe — the gate stays signaled, so the later Wait returns at once.</summary>
     private sealed class BlockingApply : IApplyService
     {
         private readonly ManualResetEventSlim _gate = new(false);
-        public volatile bool Started;
         public void Release() => _gate.Set();
         public ApplyResult Apply(IReadOnlyList<PendingChange> changes)
         {
-            Started = true;
             _gate.Wait();
             return new ApplyResult(false, false, Array.Empty<ChangeRecord>());
         }
