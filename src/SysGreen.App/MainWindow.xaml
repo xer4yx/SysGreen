@@ -28,6 +28,18 @@
                     Click="OpenSettings_Click" ToolTip="Open SysGreen settings." />
             <TextBlock Text="SysGreen" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
         </DockPanel>
+        <!-- Header progress strip (Topic B): always-present slot, shown only while an Apply is in flight.
+             Indeterminate — the restore point has no true percentage. No modal; navigation stays free. -->
+        <Border DockPanel.Dock="Top" Background="#FFF8E1" BorderBrush="#F9A825" BorderThickness="1"
+                CornerRadius="4" Padding="10,6" Margin="0,0,0,8"
+                Visibility="{Binding Busy.IsApplying, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="120" Height="12"
+                             VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock VerticalAlignment="Center" Foreground="#7A5900"
+                           Text="{Binding Busy.ProgressPhase}" />
+            </DockPanel>
+        </Border>
         <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}"
                    FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
         <TextBlock DockPanel.Dock="Bottom" Text="{Binding AppVersion}"

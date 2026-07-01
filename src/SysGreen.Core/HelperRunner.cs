@@ -20,9 +20,11 @@ public static class HelperExitCodes
 /// </summary>
 public sealed class HelperRunner
 {
-    private readonly Func<string, IApplyService> _applyServiceFor;
+    private readonly Func<ApplyJob, IApplyService> _applyServiceFor;
 
-    public HelperRunner(Func<string, IApplyService> applyServiceFor) =>
+    // Takes the whole job (not just the database path) so the built ApplyService can also wire a
+    // progress sink at the job's ProgressPath (Topic B / Phase 6).
+    public HelperRunner(Func<ApplyJob, IApplyService> applyServiceFor) =>
         _applyServiceFor = applyServiceFor;
 
     public int Run(string[] args)
@@ -42,7 +44,7 @@ public sealed class HelperRunner
             return HelperExitCodes.BadJobFile;
         }
 
-        var result = _applyServiceFor(job.DatabasePath).Apply(job.Changes);
+        var result = _applyServiceFor(job).Apply(job.Changes);
         File.WriteAllText(job.ResultPath, ApplyJobSerializer.SerializeResult(result));
 
         if (result.Aborted) return HelperExitCodes.RestorePointAborted;

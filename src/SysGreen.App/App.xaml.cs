@@ -158,10 +158,14 @@ public partial class App : Application
         // any batch with an admin-only item is delegated whole to the elevated Helper (one UAC
         // prompt), which creates the restore point and persists Change Records to the shared DB.
         services.AddSingleton<ApplyService>();
+        // Progress fan-out (Topic B / Phase 6): the elevated Helper client forwards polled phases here;
+        // the MainViewModel listens to drive the header strip. In-process applies stay silent (no-op).
+        services.AddSingleton<ApplyProgressRelay>();
         services.AddSingleton<IElevatedApplyClient>(sp => new HelperElevatedApplyClient(
             Path.Combine(AppContext.BaseDirectory, "SysGreen.Helper.exe"),
             SqliteConnectionFactory.DefaultDatabasePath(),
-            sp.GetRequiredService<IClock>()));
+            sp.GetRequiredService<IClock>(),
+            sp.GetRequiredService<ApplyProgressRelay>()));
         services.AddSingleton<IApplyService>(sp => new RoutingApplyService(
             sp.GetRequiredService<ApplyService>(),
             sp.GetRequiredService<IElevatedApplyClient>()));

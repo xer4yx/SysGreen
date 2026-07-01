@@ -12,7 +12,14 @@ public sealed record ApplyJob(
     int Version,
     string DatabasePath,
     string ResultPath,
-    IReadOnlyList<PendingChange> Changes);
+    IReadOnlyList<PendingChange> Changes)
+{
+    /// <summary>
+    /// Where the elevated Helper writes live progress for the App to poll (Topic B / Phase 6). Null
+    /// disables progress reporting. Optional (not positional) so existing job construction is unchanged.
+    /// </summary>
+    public string? ProgressPath { get; init; }
+}
 
 /// <summary>JSON (de)serialization for the App↔Helper job + result files (ADR-0011).</summary>
 public static class ApplyJobSerializer
