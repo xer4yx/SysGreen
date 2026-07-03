@@ -32,15 +32,16 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IOverrideStore _overrides;
     private readonly IItemController _controller;
     private readonly IUpdateService? _updateService;
+    private readonly IToastService _toasts;
+
+    /// <summary>
+    /// Shared busy signal + current phase for the header progress strip (Topic B / Phase 6). While an
+    /// Apply is in flight every mutating command gates on this, and the strip shows the phase.
+    /// </summary>
+    public ApplyBusyState Busy { get; } = new();
 
     [ObservableProperty]
     private string _summary = "Loading…";
-
-    [ObservableProperty]
-    private string _applyStatus = "";
-
-    [ObservableProperty]
-    private string _historyStatus = "";
 
     [ObservableProperty]
     private bool _historyEmpty;
@@ -69,7 +70,9 @@ public sealed partial class MainViewModel : ObservableObject
         IChangeReverser reverser,
         IOverrideStore overrides,
         IItemController controller,
-        IUpdateService? updateService = null)
+        IUpdateService? updateService = null,
+        ApplyProgressRelay? progress = null,
+        IToastService? toasts = null)
     {
         _autostart = autostart;
         _processes = processes;
@@ -82,6 +85,11 @@ public sealed partial class MainViewModel : ObservableObject
         _overrides = overrides;
         _controller = controller;
         _updateService = updateService;
+        // Completed-action feedback goes to toasts (Topic C / Phase 7); no-op when none is wired (tests).
+        _toasts = toasts ?? NullToastService.Instance;
+        // Elevated applies stream phases in through the relay (no-op in-process); update the strip text.
+        if (progress is not null)
+            progress.ProgressReported += p => Busy.ProgressPhase = ApplyProgressText.Describe(p);
         Refresh();
     }
 
@@ -115,11 +123,11 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             _history.Add(_controller.EndTask(process));
-            ApplyStatus = $"Ended {item.DisplayName}. It returns next time it starts.";
+            _toasts.ShowSuccess($"Ended {item.DisplayName}. It returns next time it starts.");
         }
         catch (Exception ex)
         {
-            ApplyStatus = $"Couldn't end {item.DisplayName}: {ex.Message}";
+            _toasts.ShowError($"Couldn't end {item.DisplayName}: {ex.Message}");
         }
         Refresh();
     }
@@ -137,12 +145,12 @@ public sealed partial class MainViewModel : ObservableObject
         var existing = _overrides.Get(name);
         _overrides.Set(new UserOverride(name, existing?.Purpose, NeverRecommend: true));
 
-        ApplyStatus = $"Won't recommend {item.DisplayName} again.";
+        _toasts.ShowSuccess($"Won't recommend {item.DisplayName} again.");
         Refresh();
     }
 
     /// <summary>Disables the given items in one batch (per-item or whole-group from All Items).</summary>
-    public void DisableItems(IReadOnlyList<ManageableItem> items)
+    public async Task DisableItemsAsync(IReadOnlyList<ManageableItem> items)
     {
         var changes = items
             .Where(i => i.Autostart is not null && i.CanDisable)
@@ -150,23 +158,20 @@ public sealed partial class MainViewModel : ObservableObject
             .ToList();
         if (changes.Count == 0)
         {
-            ApplyStatus = "Nothing to disable.";
+            _toasts.ShowError("Nothing to disable.");
             return;
         }
 
-        var result = _apply.Apply(changes);
-        ApplyStatus = ProblemMessage(result)
-            ?? $"Disabled {result.SucceededCount} of {changes.Count}" +
-               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        Announce(await RunApplyAsync(changes), "Disabled", changes.Count);
         Refresh();
     }
 
     /// <summary>
-    /// Re-enables the given items in one batch. The inverse of <see cref="DisableItems"/>; routes
+    /// Re-enables the given items in one batch. The inverse of <see cref="DisableItemsAsync"/>; routes
     /// <see cref="ChangeAction.Enable"/> through the same Apply pipeline, so a disabled HKLM/task item
     /// still elevates and creates a restore point exactly as an Undo does (ADR-0005).
     /// </summary>
-    public void EnableItems(IReadOnlyList<ManageableItem> items)
+    public async Task EnableItemsAsync(IReadOnlyList<ManageableItem> items)
     {
         var changes = items
             .Where(i => i.Autostart is not null && i.CanEnable)
@@ -174,15 +179,57 @@ public sealed partial class MainViewModel : ObservableObject
             .ToList();
         if (changes.Count == 0)
         {
-            ApplyStatus = "Nothing to enable.";
+            _toasts.ShowError("Nothing to enable.");
             return;
         }
 
-        var result = _apply.Apply(changes);
-        ApplyStatus = ProblemMessage(result)
-            ?? $"Enabled {result.SucceededCount} of {changes.Count}" +
-               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        Announce(await RunApplyAsync(changes), "Enabled", changes.Count);
         Refresh();
+    }
+
+    /// <summary>
+    /// Runs a synchronous Apply off the UI thread behind the busy gate (Topic B / Phase 6): the shell
+    /// stays responsive and no second mutation can start while this one is in flight. Elevated batches
+    /// also stream progress in through the relay wired in the constructor.
+    /// </summary>
+    private async Task<ApplyResult> RunApplyAsync(IReadOnlyList<PendingChange> changes)
+    {
+        SetApplying(true);
+        try
+        {
+            return await Task.Run(() => _apply.Apply(changes));
+        }
+        finally
+        {
+            SetApplying(false);
+        }
+    }
+
+    /// <summary>As <see cref="RunApplyAsync"/>, but for an Undo/Re-enable routed through the reverser.</summary>
+    private async Task<ApplyResult> RunReverseAsync(IReadOnlyList<ChangeRecord> records)
+    {
+        SetApplying(true);
+        try
+        {
+            return await Task.Run(() => _reverser.Reverse(records));
+        }
+        finally
+        {
+            SetApplying(false);
+        }
+    }
+
+    /// <summary>
+    /// Raises/clears the shared busy flag and re-evaluates every mutating command so the buttons gray
+    /// out for the duration of an Apply — one mutation at a time (Topic B). Navigation stays free.
+    /// </summary>
+    private void SetApplying(bool applying)
+    {
+        Busy.IsApplying = applying;
+        Busy.ProgressPhase = applying ? "Working…" : "";
+        ApplyCommand.NotifyCanExecuteChanged();
+        foreach (var group in AllItemGroups) group.RefreshCommandStates();
+        foreach (var batch in History) batch.RefreshCommandStates();
     }
 
     /// <summary>Records a user Override that relabels the item's Purpose (CONTEXT.md "Override").</summary>
@@ -193,12 +240,15 @@ public sealed partial class MainViewModel : ObservableObject
 
         var existing = _overrides.Get(name);
         _overrides.Set(new UserOverride(name, purpose, existing?.NeverRecommend ?? false));
-        ApplyStatus = $"Set {item.DisplayName}'s purpose to {purpose}.";
+        _toasts.ShowSuccess($"Set {item.DisplayName}'s purpose to {purpose}.");
         Refresh();
     }
 
-    [RelayCommand]
-    private void Apply()
+    /// <summary>True unless an Apply is already in flight — gates the Recommendations Apply button.</summary>
+    private bool CanApply => !Busy.IsApplying;
+
+    [RelayCommand(CanExecute = nameof(CanApply))]
+    private async Task Apply()
     {
         var selected = Recommendations
             .Where(r => r.IsSelected && r.Item.Autostart is not null)
@@ -206,28 +256,55 @@ public sealed partial class MainViewModel : ObservableObject
             .ToList();
         if (selected.Count == 0)
         {
-            ApplyStatus = "Nothing selected.";
+            _toasts.ShowError("Nothing selected.");
             return;
         }
 
-        DisableItems(selected);
+        await DisableItemsAsync(selected);
     }
 
     /// <summary>
     /// Re-enables or undoes committed changes (one record from a row, or a whole batch) by routing the
     /// inverse through <see cref="IChangeReverser"/> — which elevates and creates a restore point as the
-    /// item requires (ADR-0005). Centralized here so status and refresh happen in one place.
+    /// item requires (ADR-0005). Runs off the UI thread behind the busy gate, like a forward Apply.
     /// </summary>
-    public void ReverseChanges(IReadOnlyList<ChangeRecord> records)
+    public async Task ReverseChangesAsync(IReadOnlyList<ChangeRecord> records)
     {
         if (records.Count == 0) return;
 
-        var result = _reverser.Reverse(records);
-        HistoryStatus = ProblemMessage(result)
-            ?? $"Reversed {result.SucceededCount} change{(result.SucceededCount == 1 ? "" : "s")}" +
-               (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
-
+        var result = await RunReverseAsync(records);
+        if (ProblemMessage(result) is { } problem)
+            _toasts.ShowError(problem);
+        else
+        {
+            var msg = $"Reversed {result.SucceededCount} change{(result.SucceededCount == 1 ? "" : "s")}" +
+                      (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+            Announce(result.FailedCount > 0, msg);
+        }
         Refresh();
+    }
+
+    /// <summary>
+    /// Turns an Apply outcome into a toast (Topic C / Phase 7): the declined/aborted explanation as an
+    /// error, a clean run as a success, and a partial failure as an error (so it persists, not fades).
+    /// </summary>
+    private void Announce(ApplyResult result, string verb, int attempted)
+    {
+        if (ProblemMessage(result) is { } problem)
+        {
+            _toasts.ShowError(problem);
+            return;
+        }
+        var msg = $"{verb} {result.SucceededCount} of {attempted}" +
+                  (result.FailedCount > 0 ? $", {result.FailedCount} failed." : ".");
+        Announce(result.FailedCount > 0, msg);
+    }
+
+    /// <summary>Routes a finished-action message to the success or error channel.</summary>
+    private void Announce(bool isError, string message)
+    {
+        if (isError) _toasts.ShowError(message);
+        else _toasts.ShowSuccess(message);
     }
 
     /// <summary>The shared "nothing was applied" explanations for Apply and Undo, or null on success.</summary>
@@ -259,7 +336,7 @@ public sealed partial class MainViewModel : ObservableObject
         var recent = _history.GetRecent();
         HistoryEmpty = recent.Count == 0;
         foreach (var batch in GroupByBatch(recent))
-            History.Add(new HistoryBatchViewModel(batch, ReverseChanges));
+            History.Add(new HistoryBatchViewModel(batch, ReverseChangesAsync, Busy));
 
         Summary = $"{items.Count} startup items · {recommendations.Count} recommendations · " +
                   $"{processes.Count} processes running";
@@ -289,10 +366,10 @@ public sealed partial class MainViewModel : ObservableObject
             .GroupBy(i => i.Purpose)
             .OrderBy(g => g.Key)
             .Select(g => new PurposeGroupViewModel(
-                g.Key, g.OrderBy(i => i.DisplayName).Select(MakeItemVm).ToList(), DisableItems));
+                g.Key, g.OrderBy(i => i.DisplayName).Select(MakeItemVm).ToList(), DisableItemsAsync, Busy));
 
     private AllItemViewModel MakeItemVm(ManageableItem item) =>
-        new(item, i => DisableItems([i]), i => EnableItems([i]), SetItemPurpose, NeverRecommend, EndTask);
+        new(item, i => DisableItemsAsync([i]), i => EnableItemsAsync([i]), SetItemPurpose, NeverRecommend, EndTask, Busy);
 
     private List<ManageableItem> BuildItems(
         IReadOnlyList<AutostartEntry> entries, IReadOnlyList<ProcessInfo> processes)

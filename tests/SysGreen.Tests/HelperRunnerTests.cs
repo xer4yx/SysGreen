@@ -63,21 +63,23 @@ public sealed class HelperRunnerTests : IDisposable
     }
 
     [Fact]
-    public void Builds_the_apply_service_for_the_database_path_named_in_the_job()
+    public void Builds_the_apply_service_for_the_job_including_its_database_and_progress_paths()
     {
         var jobPath = TempPath(".json");
         var resultPath = TempPath(".result.json");
-        string? seenDbPath = null;
-        var job = new ApplyJob(1, @"C:\db\sysgreen.db", resultPath, []);
+        ApplyJob? seenJob = null;
+        var job = new ApplyJob(1, @"C:\db\sysgreen.db", resultPath, [])
+        { ProgressPath = @"C:\tmp\progress.json" };
         File.WriteAllText(jobPath, ApplyJobSerializer.SerializeJob(job));
 
-        new HelperRunner(dbPath =>
+        new HelperRunner(j =>
         {
-            seenDbPath = dbPath;
+            seenJob = j;
             return new FakeApply(new ApplyResult(false, false, []));
         }).Run([jobPath]);
 
-        Assert.Equal(@"C:\db\sysgreen.db", seenDbPath);
+        Assert.Equal(@"C:\db\sysgreen.db", seenJob!.DatabasePath);
+        Assert.Equal(@"C:\tmp\progress.json", seenJob.ProgressPath);
     }
 
     [Fact]

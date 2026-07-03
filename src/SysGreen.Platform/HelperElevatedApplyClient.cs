@@ -17,30 +17,37 @@ namespace SysGreen.Platform;
 public sealed class HelperElevatedApplyClient : IElevatedApplyClient
 {
     private const int ErrorCancelled = 1223; // ERROR_CANCELLED: the user dismissed the UAC prompt.
+    private const int ProgressPollMs = 300;  // how often the App re-reads the Helper's progress file.
 
     private readonly string _helperExecutablePath;
     private readonly string _databasePath;
     private readonly IClock _clock;
+    private readonly IApplyProgressSink _progress;
 
-    public HelperElevatedApplyClient(string helperExecutablePath, string databasePath, IClock clock)
+    public HelperElevatedApplyClient(
+        string helperExecutablePath, string databasePath, IClock clock, IApplyProgressSink? progress = null)
     {
         _helperExecutablePath = helperExecutablePath;
         _databasePath = databasePath;
         _clock = clock;
+        // Optional: without a sink the Helper still runs, just with no live progress forwarded.
+        _progress = progress ?? NullApplyProgressSink.Instance;
     }
 
     public ApplyResult Apply(IReadOnlyList<PendingChange> elevatedChanges)
     {
         var jobPath = Path.Combine(Path.GetTempPath(), $"sysgreen-job-{Guid.NewGuid():n}.json");
         var resultPath = jobPath + ".result.json";
+        var progressPath = jobPath + ".progress.json";
 
         try
         {
             var job = new ApplyJob(
-                ApplyJobSerializer.CurrentVersion, _databasePath, resultPath, elevatedChanges);
+                ApplyJobSerializer.CurrentVersion, _databasePath, resultPath, elevatedChanges)
+            { ProgressPath = progressPath };
             File.WriteAllText(jobPath, ApplyJobSerializer.SerializeJob(job));
 
-            switch (TryRunElevated(jobPath))
+            switch (TryRunElevated(jobPath, progressPath))
             {
                 case ElevationOutcome.Declined:
                     // The user dismissed the UAC prompt: nothing was attempted (ADR-0004).
@@ -63,12 +70,14 @@ public sealed class HelperElevatedApplyClient : IElevatedApplyClient
         {
             TryDelete(jobPath);
             TryDelete(resultPath);
+            TryDelete(progressPath);
+            TryDelete(progressPath + ".tmp");
         }
     }
 
     private enum ElevationOutcome { Ran, Declined, CouldNotStart }
 
-    private ElevationOutcome TryRunElevated(string jobPath)
+    private ElevationOutcome TryRunElevated(string jobPath, string progressPath)
     {
         var psi = new ProcessStartInfo
         {
@@ -84,13 +93,38 @@ public sealed class HelperElevatedApplyClient : IElevatedApplyClient
         {
             using var process = Process.Start(psi);
             if (process is null) return ElevationOutcome.CouldNotStart;
-            process.WaitForExit();
+            PollProgressUntilExit(process, progressPath);
             return ElevationOutcome.Ran;
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
         {
             return ElevationOutcome.Declined;
         }
+    }
+
+    /// <summary>
+    /// Blocks until the Helper exits, forwarding each new phase from its progress file to the sink
+    /// (~300ms polling — Topic B / ADR-0011). Runs on the App's Apply background thread. Duplicate
+    /// reads are suppressed so the sink only sees genuine phase changes.
+    /// </summary>
+    private void PollProgressUntilExit(Process process, string progressPath)
+    {
+        ApplyProgress? last = null;
+        while (!process.WaitForExit(ProgressPollMs))
+            last = ReportIfChanged(progressPath, last);
+        // A final read after exit catches a Done that landed between the last poll and exit.
+        ReportIfChanged(progressPath, last);
+    }
+
+    private ApplyProgress? ReportIfChanged(string progressPath, ApplyProgress? last)
+    {
+        var current = ApplyProgressFile.TryRead(progressPath);
+        if (current is not null && current != last)
+        {
+            _progress.Report(current);
+            return current;
+        }
+        return last;
     }
 
     /// <summary>

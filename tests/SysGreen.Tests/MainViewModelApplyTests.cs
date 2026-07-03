@@ -52,7 +52,7 @@ public class MainViewModelApplyTests
     }
 
     [Fact]
-    public void Applying_a_selected_recommendation_disables_it_via_the_apply_service()
+    public async Task Applying_a_selected_recommendation_disables_it_via_the_apply_service()
     {
         var apply = Substitute.For<IApplyService>();
         apply.Apply(Arg.Any<IReadOnlyList<PendingChange>>())
@@ -61,26 +61,10 @@ public class MainViewModelApplyTests
 
         Assert.Single(vm.Recommendations);
         vm.Recommendations[0].IsSelected = true;
-        vm.ApplyCommand.Execute(null);
+        await vm.ApplyCommand.ExecuteAsync(null);
 
         apply.Received(1).Apply(Arg.Is<IReadOnlyList<PendingChange>>(
             c => c.Count == 1 && c[0].Action == ChangeAction.Disable && c[0].Entry.DisplayName == "Spotify"));
-    }
-
-    [Fact]
-    public void Declining_the_elevation_prompt_reports_that_no_admin_changes_were_made()
-    {
-        var apply = Substitute.For<IApplyService>();
-        apply.Apply(Arg.Any<IReadOnlyList<PendingChange>>())
-            .Returns(new ApplyResult(false, false, Array.Empty<ChangeRecord>()) { ElevationDeclined = true });
-        var vm = BuildVm(apply);
-
-        vm.Recommendations[0].IsSelected = true;
-        vm.ApplyCommand.Execute(null);
-
-        // Not the terse "Disabled 0 of 1" — a tailored explanation that the user declined.
-        Assert.Contains("declined", vm.ApplyStatus, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Disabled 0", vm.ApplyStatus);
     }
 
     [Fact]
@@ -97,7 +81,7 @@ public class MainViewModelApplyTests
     }
 
     [Fact]
-    public void Applying_with_nothing_selected_does_not_touch_the_apply_service()
+    public async Task Applying_with_nothing_selected_does_not_touch_the_apply_service()
     {
         var apply = Substitute.For<IApplyService>();
         apply.Apply(Arg.Any<IReadOnlyList<PendingChange>>())
@@ -105,7 +89,7 @@ public class MainViewModelApplyTests
         var vm = BuildVm(apply);
 
         vm.Recommendations[0].IsSelected = false;
-        vm.ApplyCommand.Execute(null);
+        await vm.ApplyCommand.ExecuteAsync(null);
 
         apply.DidNotReceive().Apply(Arg.Any<IReadOnlyList<PendingChange>>());
     }

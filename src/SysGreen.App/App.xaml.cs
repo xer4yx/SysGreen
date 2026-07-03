@@ -158,10 +158,14 @@ public partial class App : Application
         // any batch with an admin-only item is delegated whole to the elevated Helper (one UAC
         // prompt), which creates the restore point and persists Change Records to the shared DB.
         services.AddSingleton<ApplyService>();
+        // Progress fan-out (Topic B / Phase 6): the elevated Helper client forwards polled phases here;
+        // the MainViewModel listens to drive the header strip. In-process applies stay silent (no-op).
+        services.AddSingleton<ApplyProgressRelay>();
         services.AddSingleton<IElevatedApplyClient>(sp => new HelperElevatedApplyClient(
             Path.Combine(AppContext.BaseDirectory, "SysGreen.Helper.exe"),
             SqliteConnectionFactory.DefaultDatabasePath(),
-            sp.GetRequiredService<IClock>()));
+            sp.GetRequiredService<IClock>(),
+            sp.GetRequiredService<ApplyProgressRelay>()));
         services.AddSingleton<IApplyService>(sp => new RoutingApplyService(
             sp.GetRequiredService<ApplyService>(),
             sp.GetRequiredService<IElevatedApplyClient>()));
@@ -195,6 +199,11 @@ public partial class App : Application
         // In-app uninstall (ADR-0017): launches the Velopack uninstaller; the uninstall hook then
         // honors the keep/delete choice. No-op in a non-Velopack (dev) run.
         services.AddSingleton<IAppUninstaller, VelopackUninstaller>();
+
+        // In-app toasts (Topic C / Phase 7): the hand-rolled overlay host is the single instance the
+        // MainWindow binds to and the MainViewModel reports completed-action outcomes through.
+        services.AddSingleton<ToastService>();
+        services.AddSingleton<IToastService>(sp => sp.GetRequiredService<ToastService>());
 
         // UI
         services.AddTransient<OnboardingViewModel>();

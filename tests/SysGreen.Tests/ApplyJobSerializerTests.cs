@@ -31,6 +31,28 @@ public class ApplyJobSerializerTests
     }
 
     [Fact]
+    public void Job_carries_the_progress_path_through_serialization()
+    {
+        var job = new ApplyJob(1, @"C:\db\sysgreen.db", @"C:\tmp\result.json",
+            [new PendingChange(Hklm("Updater"), ChangeAction.Disable)])
+        { ProgressPath = @"C:\tmp\progress.json" };
+
+        var restored = ApplyJobSerializer.DeserializeJob(ApplyJobSerializer.SerializeJob(job));
+
+        Assert.Equal(@"C:\tmp\progress.json", restored.ProgressPath);
+    }
+
+    [Fact]
+    public void A_job_without_a_progress_path_deserializes_with_a_null_one()
+    {
+        var job = new ApplyJob(1, "db", "result", []);
+
+        var restored = ApplyJobSerializer.DeserializeJob(ApplyJobSerializer.SerializeJob(job));
+
+        Assert.Null(restored.ProgressPath);
+    }
+
+    [Fact]
     public void Enums_serialize_as_strings_so_the_job_file_is_human_readable()
     {
         var job = new ApplyJob(1, "db", "result",

@@ -89,11 +89,11 @@ public class MainViewModelItemsTests
     }
 
     [Fact]
-    public void Disabling_a_row_applies_a_disable_for_that_item()
+    public async Task Disabling_a_row_applies_a_disable_for_that_item()
     {
         var b = Build([Entry("Spotify")]);
 
-        b.Vm.AllItemGroups.Single().Items.Single().DisableCommand.Execute(null);
+        await b.Vm.AllItemGroups.Single().Items.Single().DisableCommand.ExecuteAsync(null);
 
         b.Apply.Received(1).Apply(Arg.Is<IReadOnlyList<PendingChange>>(
             c => c.Count == 1 && c[0].Entry.DisplayName == "Spotify" && c[0].Action == ChangeAction.Disable));
@@ -114,22 +114,22 @@ public class MainViewModelItemsTests
     }
 
     [Fact]
-    public void Enabling_a_row_applies_an_enable_for_that_item()
+    public async Task Enabling_a_row_applies_an_enable_for_that_item()
     {
         var b = Build([Entry("Old", AutostartState.Disabled)]);
 
-        b.Vm.AllItemGroups.Single().Items.Single().EnableCommand.Execute(null);
+        await b.Vm.AllItemGroups.Single().Items.Single().EnableCommand.ExecuteAsync(null);
 
         b.Apply.Received(1).Apply(Arg.Is<IReadOnlyList<PendingChange>>(
             c => c.Count == 1 && c[0].Entry.DisplayName == "Old" && c[0].Action == ChangeAction.Enable));
     }
 
     [Fact]
-    public void Disabling_a_group_disables_every_enabled_item_in_it()
+    public async Task Disabling_a_group_disables_every_enabled_item_in_it()
     {
         var b = Build([Entry("Spotify"), Entry("Deezer")]);
 
-        b.Vm.AllItemGroups.Single().DisableGroupCommand.Execute(null);
+        await b.Vm.AllItemGroups.Single().DisableGroupCommand.ExecuteAsync(null);
 
         b.Apply.Received(1).Apply(Arg.Is<IReadOnlyList<PendingChange>>(c => c.Count == 2));
     }

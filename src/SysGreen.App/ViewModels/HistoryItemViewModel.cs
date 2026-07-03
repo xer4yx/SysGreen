@@ -12,7 +12,8 @@ namespace SysGreen.App.ViewModels;
 public sealed partial class HistoryItemViewModel : ObservableObject
 {
     private readonly ChangeRecord _record;
-    private readonly Action<IReadOnlyList<ChangeRecord>> _reverse;
+    private readonly Func<IReadOnlyList<ChangeRecord>, Task> _reverse;
+    private readonly ApplyBusyState _busy;
 
     public string DisplayText { get; }
 
@@ -27,15 +28,22 @@ public sealed partial class HistoryItemViewModel : ObservableObject
     /// <summary>Only a successful, reversible change can be undone (not a failure or a transient End Task).</summary>
     public bool CanReEnable => _record.Success && _record.IsReversible;
 
-    public HistoryItemViewModel(ChangeRecord record, Action<IReadOnlyList<ChangeRecord>> reverse)
+    // Executable only when reversible AND no Apply is in flight (busy gate / Phase 6).
+    private bool CanReEnableNow => CanReEnable && !_busy.IsApplying;
+
+    public HistoryItemViewModel(ChangeRecord record, Func<IReadOnlyList<ChangeRecord>, Task> reverse, ApplyBusyState busy)
     {
         _record = record;
         _reverse = reverse;
+        _busy = busy;
         var stamp = record.TimestampUtc.ToLocalTime().ToString("g");
         var status = record.Success ? "" : "  (failed)";
         DisplayText = $"{stamp}   {record.Action,-8} {record.ItemName}{status}";
     }
 
-    [RelayCommand(CanExecute = nameof(CanReEnable))]
-    private void ReEnable() => _reverse([_record]);
+    /// <summary>Re-evaluates the busy-gated Re-enable command when an Apply starts or finishes (Phase 6).</summary>
+    public void RefreshCommandStates() => ReEnableCommand.NotifyCanExecuteChanged();
+
+    [RelayCommand(CanExecute = nameof(CanReEnableNow))]
+    private Task ReEnable() => _reverse([_record]);
 }

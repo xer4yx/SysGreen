@@ -45,23 +45,29 @@ public sealed class ApplyService : IApplyService
     private readonly IChangeLog _changeLog;
     private readonly IRestorePointService _restorePoints;
     private readonly IClock _clock;
+    private readonly IApplyProgressSink _progress;
 
     public ApplyService(
         IItemController controller, IChangeLog changeLog,
-        IRestorePointService restorePoints, IClock clock)
+        IRestorePointService restorePoints, IClock clock,
+        IApplyProgressSink? progress = null)
     {
         _controller = controller;
         _changeLog = changeLog;
         _restorePoints = restorePoints;
         _clock = clock;
+        // Optional so every existing caller/test compiles unchanged; in-process applies stay silent.
+        _progress = progress ?? NullApplyProgressSink.Instance;
     }
 
     public ApplyResult Apply(IReadOnlyList<PendingChange> changes)
     {
+        var total = changes.Count;
         bool restorePointRequired = changes.Any(c => c.Entry.RequiresElevation);
         bool restorePointCreated = false;
         if (restorePointRequired)
         {
+            _progress.Report(new ApplyProgress(ApplyStage.CreatingRestorePoint, 0, total));
             restorePointCreated = _restorePoints.TryCreateRestorePoint("SysGreen: before applying changes");
             // Mandatory lifeline (ADR-0005): without it, do not touch a risky batch.
             if (!restorePointCreated)
@@ -71,12 +77,14 @@ public sealed class ApplyService : IApplyService
         // One id per Apply so the History view can offer a per-batch Undo (ADR-0005).
         var batchId = Guid.NewGuid().ToString("n");
         var records = new List<ChangeRecord>(changes.Count);
-        foreach (var change in changes)
+        for (var i = 0; i < changes.Count; i++)
         {
-            var record = ApplyOne(change) with { BatchId = batchId };
+            _progress.Report(new ApplyProgress(ApplyStage.Applying, i + 1, total));
+            var record = ApplyOne(changes[i]) with { BatchId = batchId };
             _changeLog.Record(record);
             records.Add(record);
         }
+        _progress.Report(new ApplyProgress(ApplyStage.Done, total, total));
         return new ApplyResult(restorePointRequired, restorePointCreated, records);
     }
 

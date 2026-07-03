@@ -10,6 +10,7 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
+    <Grid>
     <DockPanel Margin="12">
         <Border DockPanel.Dock="Top" Background="#E8F5E9" BorderBrush="#2E7D32" BorderThickness="1"
                 CornerRadius="4" Padding="10,6" Margin="0,0,0,8"
@@ -28,6 +29,18 @@
                     Click="OpenSettings_Click" ToolTip="Open SysGreen settings." />
             <TextBlock Text="SysGreen" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
         </DockPanel>
+        <!-- Header progress strip (Topic B): always-present slot, shown only while an Apply is in flight.
+             Indeterminate — the restore point has no true percentage. No modal; navigation stays free. -->
+        <Border DockPanel.Dock="Top" Background="#FFF8E1" BorderBrush="#F9A825" BorderThickness="1"
+                CornerRadius="4" Padding="10,6" Margin="0,0,0,8"
+                Visibility="{Binding Busy.IsApplying, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="120" Height="12"
+                             VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock VerticalAlignment="Center" Foreground="#7A5900"
+                           Text="{Binding Busy.ProgressPhase}" />
+            </DockPanel>
+        </Border>
         <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}"
                    FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
         <TextBlock DockPanel.Dock="Bottom" Text="{Binding AppVersion}"
@@ -37,7 +50,6 @@
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
                         <Button Content="Apply selected" Command="{Binding ApplyCommand}" Padding="12,4" />
-                        <TextBlock Text="{Binding ApplyStatus}" VerticalAlignment="Center" Margin="12,0,0,0" />
                     </StackPanel>
                     <ListBox ItemsSource="{Binding Recommendations}" BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
@@ -57,8 +69,6 @@
             </TabItem>
             <TabItem Header="All Items">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{Binding ApplyStatus}"
-                               Foreground="#2E7D32" Margin="2,0,0,6" />
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding AllItemGroups}">
                             <ItemsControl.ItemTemplate>
@@ -112,8 +122,6 @@
             </TabItem>
             <TabItem Header="History">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="{Binding HistoryStatus}"
-                               Foreground="#2E7D32" Margin="2,0,0,6" />
                     <TextBlock DockPanel.Dock="Top" Foreground="Gray" Margin="2"
                                Text="No changes yet. Anything you disable appears here, fully reversible."
                                Visibility="{Binding HistoryEmpty, Converter={StaticResource BoolToVis}}" />
@@ -153,4 +161,36 @@
             </TabItem>
         </TabControl>
     </DockPanel>
+
+        <!-- Toast overlay (Topic C / Phase 7): closable in-app toasts for completed-action feedback,
+             layered top-right over the shell. Success toasts auto-dismiss (~5s); errors persist.
+             ItemsSource is set in code-behind to the ToastService's live collection. -->
+        <ItemsControl x:Name="ToastHost" HorizontalAlignment="Right" VerticalAlignment="Top"
+                      Margin="0,12,12,0" MaxWidth="360" Panel.ZIndex="100">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border CornerRadius="4" Padding="10,8" Margin="0,0,0,8" BorderThickness="1">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#E8F5E9" />
+                                <Setter Property="BorderBrush" Value="#2E7D32" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsError}" Value="True">
+                                        <Setter Property="Background" Value="#FDECEA" />
+                                        <Setter Property="BorderBrush" Value="#C62828" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="✕" Command="{Binding CloseCommand}"
+                                    Background="Transparent" BorderThickness="0" Padding="6,0"
+                                    VerticalAlignment="Top" Cursor="Hand" ToolTip="Dismiss" />
+                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
 </Window>
